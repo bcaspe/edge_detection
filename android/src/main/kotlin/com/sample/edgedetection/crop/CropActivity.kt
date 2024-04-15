@@ -82,15 +82,15 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     }
 
     override fun onBackPressed() {
-    if (showMenuItems) {
-        // If menu items are visible (indicating that the image is cropped), revert to pre-cropped state
-        mPresenter.reset() // Call the reset method in the presenter to revert changes
-        changeMenuVisibility(false) // Hide the menu items
-    } else {
-        // If menu items are not visible, proceed with default back button behavior
-        super.onBackPressed()
+        if (showMenuItems) {
+            // If menu items are visible (indicating that the image is cropped), revert to pre-cropped state
+            mPresenter.reset() // Call the reset method in the presenter to revert changes
+            changeMenuVisibility(false) // Hide the menu items
+        } else {
+            // If menu items are not visible, proceed with default back button behavior
+            super.onBackPressed()
+        }
     }
-}
 
     // handle button activities
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
