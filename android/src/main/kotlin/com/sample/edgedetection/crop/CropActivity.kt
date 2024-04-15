@@ -15,6 +15,7 @@ import com.sample.edgedetection.view.PaperRectangle
 class CropActivity : BaseActivity(), ICropView.Proxy {
 
     private var showMenuItems = false
+    private ImageButton cropButton;
 
     private lateinit var mPresenter: CropPresenter
 
@@ -31,10 +32,20 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             // we have to initialize everything in post when the view has been drawn and we have the actual height and width of the whole view
             mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
         }
+        // Initialize crop button
+    cropButton = findViewById(R.id.crop);
+        updateCropButtonIcon();
     }
 
     override fun provideContentViewId(): Int = R.layout.activity_crop
 
+    private void updateCropButtonIcon() {
+    if (showMenuItems) {
+        cropButton.setImageResource(R.drawable.ic_check); // Set check icon
+    } else {
+        cropButton.setImageResource(R.drawable.ic_crop); // Set crop icon
+    }
+}
 
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
@@ -54,7 +65,6 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
             // Handle the action for the "Check" button
             Log.e(TAG, "Saved touched!")
-            item.isEnabled = false
             mPresenter.save()
             setResult(Activity.RESULT_OK)
             System.gc()
