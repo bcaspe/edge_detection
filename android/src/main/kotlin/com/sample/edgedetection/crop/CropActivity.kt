@@ -15,7 +15,6 @@ import com.sample.edgedetection.view.PaperRectangle
 class CropActivity : BaseActivity(), ICropView.Proxy {
 
     private var showMenuItems = false
-    private ImageButton cropButton;
 
     private lateinit var mPresenter: CropPresenter
 
@@ -32,50 +31,19 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             // we have to initialize everything in post when the view has been drawn and we have the actual height and width of the whole view
             mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
         }
-        // Initialize crop button
-    cropButton = findViewById(R.id.crop);
-        updateCropButtonIcon();
     }
 
     override fun provideContentViewId(): Int = R.layout.activity_crop
 
-    private void updateCropButtonIcon() {
-    if (showMenuItems) {
-        cropButton.setImageResource(R.drawable.ic_check); // Set check icon
-    } else {
-        cropButton.setImageResource(R.drawable.ic_crop); // Set crop icon
-    }
-}
 
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
         mPresenter = CropPresenter(this, initialBundle)
-        // Find the crop icon ImageView
-    val cropIconImageView = findViewById<ImageView>(R.id.crop)
-
-    // Set click listener for the crop icon
-    cropIconImageView.setOnClickListener {
-        if (showMenuItems) {
-            // When showMenuItems is true, change icon to check and perform the action
-            // Hide the crop icon
-            cropIconImageView.visibility = View.GONE
-
-            // Change the icon to a check icon (assuming you have a check icon drawable)
-            item.setIcon(R.drawable.check_icon)
-
-            // Handle the action for the "Check" button
-            Log.e(TAG, "Saved touched!")
-            mPresenter.save()
-            setResult(Activity.RESULT_OK)
-            System.gc()
-            finish()
-        } else {
-            // Handle the original crop action
+        findViewById<ImageView>(R.id.crop).setOnClickListener {
             Log.e(TAG, "Crop touched!")
             mPresenter.crop()
             changeMenuVisibility(true)
         }
-    }
     }
 
     override fun getPaper(): ImageView = findViewById(R.id.paper)
