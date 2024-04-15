@@ -37,7 +37,7 @@ class PaperRectangle : View {
     private var latestDownY = 0.0F
 
     init {
-        rectPaint.color = Color.argb(128, 255, 255, 255)
+        rectPaint.color = Color.argb(128, 173, 216, 230)
         rectPaint.isAntiAlias = true
         rectPaint.isDither = true
         rectPaint.strokeWidth = 6F
@@ -46,7 +46,7 @@ class PaperRectangle : View {
         rectPaint.strokeCap = Paint.Cap.ROUND      // set the paint cap to round too
         rectPaint.pathEffect = CornerPathEffect(10f)
 
-        circlePaint.color = Color.WHITE
+        circlePaint.color = Color.argb(255, 173, 216, 230)
         circlePaint.isDither = true
         circlePaint.isAntiAlias = true
         circlePaint.strokeWidth = 4F
@@ -119,12 +119,12 @@ class PaperRectangle : View {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        rectPaint.color = Color.WHITE
+        rectPaint.color = Color.argb(255, 173, 216, 230)
         rectPaint.strokeWidth = 6F
         rectPaint.style = Paint.Style.STROKE
         canvas?.drawPath(path, rectPaint)
 
-        rectPaint.color = Color.argb(128, 255, 255, 255)
+        rectPaint.color = Color.argb(128, 173, 216, 230) 
         rectPaint.strokeWidth = 0F
         rectPaint.style = Paint.Style.FILL
         canvas?.drawPath(path, rectPaint)
