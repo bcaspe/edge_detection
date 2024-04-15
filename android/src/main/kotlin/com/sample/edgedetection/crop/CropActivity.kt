@@ -39,11 +39,33 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
         mPresenter = CropPresenter(this, initialBundle)
-        findViewById<ImageView>(R.id.crop).setOnClickListener {
+        // Find the crop icon ImageView
+    val cropIconImageView = findViewById<ImageView>(R.id.crop)
+
+    // Set click listener for the crop icon
+    cropIconImageView.setOnClickListener {
+        if (showMenuItems) {
+            // When showMenuItems is true, change icon to check and perform the action
+            // Hide the crop icon
+            cropIconImageView.visibility = View.GONE
+
+            // Change the icon to a check icon (assuming you have a check icon drawable)
+            item.setIcon(R.drawable.check_icon)
+
+            // Handle the action for the "Check" button
+            Log.e(TAG, "Saved touched!")
+            item.isEnabled = false
+            mPresenter.save()
+            setResult(Activity.RESULT_OK)
+            System.gc()
+            finish()
+        } else {
+            // Handle the original crop action
             Log.e(TAG, "Crop touched!")
             mPresenter.crop()
             changeMenuVisibility(true)
         }
+    }
     }
 
     override fun getPaper(): ImageView = findViewById(R.id.paper)
@@ -80,6 +102,17 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         this.showMenuItems = showMenuItems
         invalidateOptionsMenu()
     }
+
+    override fun onBackPressed() {
+    if (showMenuItems) {
+        // If menu items are visible (indicating that the image is cropped), revert to pre-cropped state
+        mPresenter.reset() // Call the reset method in the presenter to revert changes
+        changeMenuVisibility(false) // Hide the menu items
+    } else {
+        // If menu items are not visible, proceed with default back button behavior
+        super.onBackPressed()
+    }
+}
 
     // handle button activities
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
