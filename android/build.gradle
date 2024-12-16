@@ -26,7 +26,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    namespace ''
+    namespace 'com.sample.edgedetection'
     compileSdkVersion 33
 
     sourceSets {
