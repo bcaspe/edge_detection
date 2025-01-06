@@ -193,8 +193,13 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         invalidate()
     }
 
-    fun getCorners2Crop(): List<Point> {
-        return listOf(tl, tr, br, bl)
+    fun onCorners2Crop(topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point) {
+        tl = topLeft
+        tr = topRight
+        br = bottomRight
+        bl = bottomLeft
+        cropMode = true
+        invalidate()
     }
 
     fun onCornersNotDetected() {
