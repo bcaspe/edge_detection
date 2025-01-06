@@ -57,8 +57,6 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var activeCorner: Point? = null
     private var activeSide = -1
 
-    var cropMode = false // Enables or disables crop editing
-
     var cropMode = false  // Start with crop mode disabled
     
     override fun onDraw(canvas: Canvas?) {
