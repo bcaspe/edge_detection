@@ -159,16 +159,33 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun moveCorner(corner: Point, dx: Float, dy: Float) {
-        corner.x += dx
-        corner.y += dy
+        // Create a new Point instead of modifying the existing one
+        when (corner) {
+            tl -> tl = Point(tl.x + dx, tl.y + dy)
+            tr -> tr = Point(tr.x + dx, tr.y + dy)
+            br -> br = Point(br.x + dx, br.y + dy)
+            bl -> bl = Point(bl.x + dx, bl.y + dy)
+        }
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
         when (sideIndex) {
-            0 -> { tl.y += dy; tr.y += dy }
-            1 -> { tr.x += dx; br.x += dx }
-            2 -> { br.y += dy; bl.y += dy }
-            3 -> { bl.x += dx; tl.x += dx }
+            0 -> { // Top side
+                tl = Point(tl.x, tl.y + dy)
+                tr = Point(tr.x, tr.y + dy)
+            }
+            1 -> { // Right side
+                tr = Point(tr.x + dx, tr.y)
+                br = Point(br.x + dx, br.y)
+            }
+            2 -> { // Bottom side
+                br = Point(br.x, br.y + dy)
+                bl = Point(bl.x, bl.y + dy)
+            }
+            3 -> { // Left side
+                bl = Point(bl.x + dx, bl.y)
+                tl = Point(tl.x + dx, tl.y)
+            }
         }
     }
 
