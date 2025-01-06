@@ -188,18 +188,30 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         invalidate()
     }
 
-    fun onCorners2Crop() {
+    fun onCorners2Crop(corners: Corners?, size: Size?, width: Int, height: Int) {
+        if (corners == null || size == null) {
+            resetQuadrilateral()
+            return
+        }
+        
+        // Update corners based on the provided parameters
+        corners.corners.let { cornerPoints ->
+            tl = cornerPoints[0] ?: Point()
+            tr = cornerPoints[1] ?: Point()
+            br = cornerPoints[2] ?: Point()
+            bl = cornerPoints[3] ?: Point()
+        }
+        
+        ratioX = size.width / width.toDouble()
+        ratioY = size.height / height.toDouble()
+        
+        resize()
         cropMode = true
         invalidate()
     }
 
-    fun onCorners2Crop(topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point) {
-        tl = topLeft
-        tr = topRight
-        br = bottomRight
-        bl = bottomLeft
-        cropMode = true
-        invalidate()
+    fun getCorners2Crop(): Array<Point> {
+        return arrayOf(tl, tr, br, bl)
     }
 
     fun onCornersNotDetected() {
