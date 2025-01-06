@@ -191,11 +191,33 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
 
     private fun validateQuadrilateral() {
         val sides = listOf(Pair(tl, tr), Pair(tr, br), Pair(br, bl), Pair(bl, tl))
-        val isValid = sides.all { (p1, p2) ->
-            // Replace .pow(2) with * for squaring
-            sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)) > MIN_SIDE_LENGTH
+        
+        // Check if any point is outside the view bounds
+        val viewWidth = width.toFloat()
+        val viewHeight = height.toFloat()
+        val points = listOf(tl, tr, br, bl)
+        
+        val isOutOfBounds = points.any { point ->
+            point.x < -100 || point.x > viewWidth + 100 ||
+            point.y < -100 || point.y > viewHeight + 100
         }
-        if (!isValid) resetQuadrilateral()
+        
+        // Check if any side is too small (collapsed)
+        val isTooSmall = sides.any { (p1, p2) ->
+            val sideLength = sqrt((p2.x - p1.x) * (p2.x - p1.x) + 
+                                (p2.y - p1.y) * (p2.y - p1.y))
+            sideLength < MIN_SIDE_LENGTH
+        }
+        
+        if (isOutOfBounds || isTooSmall) {
+            // Reset to a reasonable default size based on view dimensions
+            val margin = 50.0
+            tl = Point(margin, margin)
+            tr = Point(viewWidth - margin, margin)
+            br = Point(viewWidth - margin, viewHeight - margin)
+            bl = Point(margin, viewHeight - margin)
+            invalidate()
+        }
     }
 
     private fun resetQuadrilateral() {
