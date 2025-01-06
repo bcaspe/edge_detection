@@ -9,62 +9,192 @@ import android.view.View
 import com.sample.edgedetection.processor.Corners
 import com.sample.edgedetection.processor.TAG
 import org.opencv.core.Point
-import org.opencv.core.Size
 import kotlin.math.abs
+import kotlin.math.sqrt
 
+class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
 
-class PaperRectangle : View {
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attributes: AttributeSet) : super(context, attributes)
-    constructor(context: Context, attributes: AttributeSet, defTheme: Int) : super(
-        context,
-        attributes,
-        defTheme
-    )
+    companion object {
+        private const val DEFAULT_CIRCLE_RADIUS = 20F
+        private const val DEFAULT_TOUCH_TARGET_SIZE = 40F
+        private const val MIN_SIDE_LENGTH = 50
+        private const val STROKE_WIDTH = 4F
+    }
 
-    private val rectPaint = Paint()
-    private val circlePaint = Paint()
+    private val rectPaint = Paint().apply {
+        style = Paint.Style.FILL_AND_STROKE
+        strokeWidth = STROKE_WIDTH
+        color = Color.argb(128, 173, 216, 230) // Light blue with transparency
+        isAntiAlias = true
+        isDither = true
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        pathEffect = CornerPathEffect(10f)
+    }
+
+    private val cornerPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeWidth = STROKE_WIDTH
+        color = Color.argb(255, 173, 216, 230)
+        isAntiAlias = true
+        isDither = true
+    }
+
+    private val path = Path()
+
     private var ratioX: Double = 1.0
     private var ratioY: Double = 1.0
-    private var tl: Point = Point()
-    private var tr: Point = Point()
-    private var br: Point = Point()
-    private var bl: Point = Point()
-    private val path: Path = Path()
-    private var point2Move = Point()
-    private var cropMode = false
-    private var latestDownX = 0.0F
-    private var latestDownY = 0.0F
 
-    init {
-        rectPaint.color = Color.argb(128, 173, 216, 230)
-        rectPaint.isAntiAlias = true
-        rectPaint.isDither = true
-        rectPaint.strokeWidth = 6F
-        rectPaint.style = Paint.Style.FILL_AND_STROKE
-        rectPaint.strokeJoin = Paint.Join.ROUND    // set the join to round you want
-        rectPaint.strokeCap = Paint.Cap.ROUND      // set the paint cap to round too
-        rectPaint.pathEffect = CornerPathEffect(10f)
+    private var latestDownX = 0F
+    private var latestDownY = 0F
 
-        circlePaint.color = Color.argb(255, 173, 216, 230)
-        circlePaint.isDither = true
-        circlePaint.isAntiAlias = true
-        circlePaint.strokeWidth = 4F
-        circlePaint.style = Paint.Style.STROKE
+    var tl = Point(100.0, 100.0)
+    var tr = Point(500.0, 100.0)
+    var br = Point(500.0, 500.0)
+    var bl = Point(100.0, 500.0)
+
+    private var activeCorner: Point? = null
+    private var activeSide = -1
+
+    var cropMode = true // Enables or disables crop editing
+
+    override fun onDraw(canvas: Canvas?) {
+        super.onDraw(canvas)
+
+        // Draw quadrilateral
+        path.reset()
+        path.moveTo(tl.x.toFloat(), tl.y.toFloat())
+        path.lineTo(tr.x.toFloat(), tr.y.toFloat())
+        path.lineTo(br.x.toFloat(), br.y.toFloat())
+        path.lineTo(bl.x.toFloat(), bl.y.toFloat())
+        path.close()
+        canvas?.drawPath(path, rectPaint)
+
+        // Draw corners
+        drawCorner(tl, canvas)
+        drawCorner(tr, canvas)
+        drawCorner(br, canvas)
+        drawCorner(bl, canvas)
+
+        // Draw touch targets for sides
+        if (cropMode) drawTouchTargets(canvas)
+    }
+
+    private fun drawCorner(point: Point, canvas: Canvas?) {
+        canvas?.drawCircle(point.x.toFloat(), point.y.toFloat(), DEFAULT_CIRCLE_RADIUS, cornerPaint)
+    }
+
+    private fun drawTouchTargets(canvas: Canvas?) {
+        val sides = listOf(
+            Pair(tl, tr), // Top
+            Pair(tr, br), // Right
+            Pair(br, bl), // Bottom
+            Pair(bl, tl)  // Left
+        )
+        sides.forEach { side ->
+            val midX = (side.first.x + side.second.x) / 2
+            val midY = (side.first.y + side.second.y) / 2
+
+            val rect = RectF(
+                (midX - DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
+                (midY - DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
+                (midX + DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
+                (midY + DEFAULT_TOUCH_TARGET_SIZE).toFloat()
+            )
+            canvas?.drawRect(rect, rectPaint)
+        }
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (!cropMode || event == null) return false
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                latestDownX = event.x
+                latestDownY = event.y
+                activeCorner = detectTouchedCorner(event.x, event.y)
+                if (activeCorner == null) {
+                    activeSide = detectTouchedSide(event.x, event.y)
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (activeCorner != null) {
+                    moveCorner(activeCorner!!, event.x - latestDownX, event.y - latestDownY)
+                } else if (activeSide != -1) {
+                    moveSide(activeSide, event.x - latestDownX, event.y - latestDownY)
+                }
+                latestDownX = event.x
+                latestDownY = event.y
+                invalidate()
+            }
+            MotionEvent.ACTION_UP -> {
+                validateQuadrilateral()
+                activeCorner = null
+                activeSide = -1
+            }
+        }
+        return true
+    }
+
+    private fun detectTouchedCorner(x: Float, y: Float): Point? {
+        val corners = listOf(tl, tr, br, bl)
+        return corners.firstOrNull {
+            abs(it.x - x) < DEFAULT_CIRCLE_RADIUS * 2 && abs(it.y - y) < DEFAULT_CIRCLE_RADIUS * 2
+        }
+    }
+
+    private fun detectTouchedSide(x: Float, y: Float): Int {
+        val sides = listOf(
+            Pair(tl, tr),
+            Pair(tr, br),
+            Pair(br, bl),
+            Pair(bl, tl)
+        )
+        return sides.indexOfFirst { side ->
+            val midX = (side.first.x + side.second.x) / 2
+            val midY = (side.first.y + side.second.y) / 2
+            abs(midX - x) < DEFAULT_TOUCH_TARGET_SIZE && abs(midY - y) < DEFAULT_TOUCH_TARGET_SIZE
+        }
+    }
+
+    private fun moveCorner(corner: Point, dx: Float, dy: Float) {
+        corner.x += dx
+        corner.y += dy
+    }
+
+    private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
+        when (sideIndex) {
+            0 -> { tl.y += dy; tr.y += dy }
+            1 -> { tr.x += dx; br.x += dx }
+            2 -> { br.y += dy; bl.y += dy }
+            3 -> { bl.x += dx; tl.x += dx }
+        }
+    }
+
+    private fun validateQuadrilateral() {
+        val sides = listOf(Pair(tl, tr), Pair(tr, br), Pair(br, bl), Pair(bl, tl))
+        val isValid = sides.all { (p1, p2) ->
+            sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2)) > MIN_SIDE_LENGTH
+        }
+        if (!isValid) resetQuadrilateral()
+    }
+
+    private fun resetQuadrilateral() {
+        tl = Point(100.0, 100.0)
+        tr = Point(500.0, 100.0)
+        br = Point(500.0, 500.0)
+        bl = Point(100.0, 500.0)
+        invalidate()
     }
 
     fun onCornersDetected(corners: Corners) {
-
-        ratioX = corners.size.width.div(measuredWidth)
-        ratioY = corners.size.height.div(measuredHeight)
+        ratioX = corners.size.width / measuredWidth
+        ratioY = corners.size.height / measuredHeight
 
         for (i in 0..3) {
             for (j in i + 1..3) {
                 if (corners.corners[i]?.equals(corners.corners[j]) == true) {
-                    resize()
-                    path.reset()
-                    path.close()
-                    invalidate()
+                    resetQuadrilateral()
                     return
                 }
             }
@@ -75,126 +205,18 @@ class PaperRectangle : View {
         br = corners.corners[2] ?: Point()
         bl = corners.corners[3] ?: Point()
 
-        Log.i(TAG, "POINTS tl ------>  $tl corners")
-        Log.i(TAG, "POINTS tr ------>  $tr corners")
-        Log.i(TAG, "POINTS br ------>  $br corners")
-        Log.i(TAG, "POINTS bl ------>  $bl corners")
-
         resize()
-        path.reset()
-        path.moveTo(tl.x.toFloat(), tl.y.toFloat())
-        path.lineTo(tr.x.toFloat(), tr.y.toFloat())
-        path.lineTo(br.x.toFloat(), br.y.toFloat())
-        path.lineTo(bl.x.toFloat(), bl.y.toFloat())
-        path.close()
         invalidate()
     }
-
-    fun onCornersNotDetected() {
-        path.reset()
-        invalidate()
-    }
-
-    fun onCorners2Crop(corners: Corners?, size: Size?, paperWidth: Int, paperHeight: Int) {
-        if (size == null) {
-            return
-        }
-
-        cropMode = true
-        tl = corners?.corners?.get(0) ?: Point(size.width * 0.1, size.height * 0.1)
-        tr = corners?.corners?.get(1) ?: Point(size.width * 0.9, size.height * 0.1)
-        br = corners?.corners?.get(2) ?: Point(size.width * 0.9, size.height * 0.9)
-        bl = corners?.corners?.get(3) ?: Point(size.width * 0.1, size.height * 0.9)
-        ratioX = size.width?.div(paperWidth) ?: 1.0
-        ratioY = size.height?.div(paperHeight) ?: 1.0
-        resize()
-        movePoints()
-    }
-
-    fun getCorners2Crop(): List<Point> {
-        reverseSize()
-        return listOf(tl, tr, br, bl)
-    }
-
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-
-        rectPaint.color = Color.argb(255, 173, 216, 230)
-        rectPaint.strokeWidth = 6F
-        rectPaint.style = Paint.Style.STROKE
-        canvas?.drawPath(path, rectPaint)
-
-        rectPaint.color = Color.argb(128, 173, 216, 230) 
-        rectPaint.strokeWidth = 0F
-        rectPaint.style = Paint.Style.FILL
-        canvas?.drawPath(path, rectPaint)
-
-        if (cropMode) {
-            canvas?.drawCircle(tl.x.toFloat(), tl.y.toFloat(), 20F, circlePaint)
-            canvas?.drawCircle(tr.x.toFloat(), tr.y.toFloat(), 20F, circlePaint)
-            canvas?.drawCircle(bl.x.toFloat(), bl.y.toFloat(), 20F, circlePaint)
-            canvas?.drawCircle(br.x.toFloat(), br.y.toFloat(), 20F, circlePaint)
-        }
-    }
-
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-
-        if (!cropMode) {
-            return false
-        }
-        when (event?.action) {
-            MotionEvent.ACTION_DOWN -> {
-                latestDownX = event.x
-                latestDownY = event.y
-                calculatePoint2Move(event.x, event.y)
-            }
-            MotionEvent.ACTION_MOVE -> {
-                point2Move.x = (event.x - latestDownX) + point2Move.x
-                point2Move.y = (event.y - latestDownY) + point2Move.y
-                movePoints()
-                latestDownY = event.y
-                latestDownX = event.x
-            }
-        }
-        return true
-    }
-
-    private fun calculatePoint2Move(downX: Float, downY: Float) {
-        val points = listOf(tl, tr, br, bl)
-        point2Move = points.minByOrNull { abs((it.x - downX).times(it.y - downY)) }
-            ?: tl
-    }
-
-    private fun movePoints() {
-        path.reset()
-        path.moveTo(tl.x.toFloat(), tl.y.toFloat())
-        path.lineTo(tr.x.toFloat(), tr.y.toFloat())
-        path.lineTo(br.x.toFloat(), br.y.toFloat())
-        path.lineTo(bl.x.toFloat(), bl.y.toFloat())
-        path.close()
-        invalidate()
-    }
-
 
     private fun resize() {
-        tl.x = tl.x.div(ratioX)
-        tl.y = tl.y.div(ratioY)
-        tr.x = tr.x.div(ratioX)
-        tr.y = tr.y.div(ratioY)
-        br.x = br.x.div(ratioX)
-        br.y = br.y.div(ratioY)
-        bl.x = bl.x.div(ratioX)
-        bl.y = bl.y.div(ratioY)
+        tl.x /= ratioX; tl.y /= ratioY
+        tr.x /= ratioX; tr.y /= ratioY
+        br.x /= ratioX; br.y /= ratioY
+        bl.x /= ratioX; bl.y /= ratioY
     }
 
-    private fun reverseSize() {
-        tl.x = tl.x.times(ratioX)
-        tl.y = tl.y.times(ratioY)
-        tr.x = tr.x.times(ratioX)
-        tr.y = tr.y.times(ratioY)
-        br.x = br.x.times(ratioX)
-        br.y = br.y.times(ratioY)
-        bl.x = bl.x.times(ratioX)
-        bl.y = bl.y.times(ratioY)
+    fun getActualCorners(): List<Point> {
+        return listOf(tl, tr, br, bl).map { Point(it.x * ratioX, it.y * ratioY) }
     }
 }
