@@ -42,12 +42,12 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private val path = Path()
-
     private var ratioX: Double = 1.0
     private var ratioY: Double = 1.0
-
     private var latestDownX = 0F
     private var latestDownY = 0F
+    private var point2Move = Point()
+    private var userIsEditing = false
 
     var tl = Point(100.0, 100.0)
     var tr = Point(500.0, 100.0)
@@ -56,9 +56,8 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
 
     private var activeCorner: Point? = null
     private var activeSide = -1
+    var cropMode = false
 
-    var cropMode = false  // Start with crop mode disabled
-    
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
@@ -83,6 +82,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             drawTouchTargets(canvas)
         }
     }
+
     private fun drawCorner(point: Point, canvas: Canvas?) {
         canvas?.drawCircle(point.x.toFloat(), point.y.toFloat(), DEFAULT_CIRCLE_RADIUS, cornerPaint)
     }
@@ -119,6 +119,9 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 if (activeCorner == null) {
                     activeSide = detectTouchedSide(event.x, event.y)
                 }
+                if (activeCorner != null || activeSide != -1) {
+                    userIsEditing = true
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (activeCorner != null) {
@@ -128,10 +131,9 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 }
                 latestDownX = event.x
                 latestDownY = event.y
-                invalidate()
+                movePoints()
             }
             MotionEvent.ACTION_UP -> {
-                validateQuadrilateral()
                 activeCorner = null
                 activeSide = -1
             }
@@ -140,12 +142,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun detectTouchedCorner(x: Float, y: Float): Point? {
-        // Log touch coordinates for debugging
-        Log.d(TAG, "Touch at x=$x, y=$y")
-        
-        val touchRadius = DEFAULT_CIRCLE_RADIUS * 3 // Increase touch area
-        
-        // Check each corner with euclidean distance for more accurate touch detection
+        val touchRadius = DEFAULT_CIRCLE_RADIUS * 3
         val corners = listOf(
             Pair(tl, "TL"),
             Pair(tr, "TR"),
@@ -157,10 +154,6 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             val dx = corner.x - x
             val dy = corner.y - y
             val distance = sqrt(dx * dx + dy * dy)
-            
-            // Log distance for debugging
-            Log.d(TAG, "$name corner distance: $distance")
-            
             distance < touchRadius
         }?.first
     }
@@ -180,14 +173,12 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun moveCorner(corner: Point, dx: Float, dy: Float) {
-        // Create a new Point instead of modifying the existing one
         when (corner) {
             tl -> tl = Point(tl.x + dx, tl.y + dy)
             tr -> tr = Point(tr.x + dx, tr.y + dy)
             br -> br = Point(br.x + dx, br.y + dy)
             bl -> bl = Point(bl.x + dx, bl.y + dy)
         }
-        invalidate()
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
@@ -211,72 +202,13 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         }
     }
 
-    private fun validateQuadrilateral() {
-        val sides = listOf(Pair(tl, tr), Pair(tr, br), Pair(br, bl), Pair(bl, tl))
-        
-        // Check if any point is outside the view bounds
-        val viewWidth = width.toFloat()
-        val viewHeight = height.toFloat()
-        val points = listOf(tl, tr, br, bl)
-        
-        val isOutOfBounds = points.any { point ->
-            point.x < -100 || point.x > viewWidth + 100 ||
-            point.y < -100 || point.y > viewHeight + 100
-        }
-        
-        // Check if any side is too small (collapsed)
-        val isTooSmall = sides.any { (p1, p2) ->
-            val sideLength = sqrt((p2.x - p1.x) * (p2.x - p1.x) + 
-                                (p2.y - p1.y) * (p2.y - p1.y))
-            sideLength < MIN_SIDE_LENGTH
-        }
-        
-        if (isOutOfBounds || isTooSmall) {
-            // Reset to a reasonable default size based on view dimensions
-            val margin = 50.0
-            tl = Point(margin, margin)
-            tr = Point(viewWidth - margin, margin)
-            br = Point(viewWidth - margin, viewHeight - margin)
-            bl = Point(margin, viewHeight - margin)
-            invalidate()
-        }
-    }
-
-    private fun resetQuadrilateral() {
-        tl = Point(100.0, 100.0)
-        tr = Point(500.0, 100.0)
-        br = Point(500.0, 500.0)
-        bl = Point(100.0, 500.0)
-        invalidate()
-    }
-
-    fun getCorners2Crop(): List<Point> {  // Change return type from Array to List
-        return listOf(tl, tr, br, bl)
-    }
-
-    fun onCorners2Crop(corners: Corners?, size: Size?, width: Int, height: Int) {
-        if (corners == null || size == null) {
-            resetQuadrilateral()
-            return
-        }
-        
-        corners.corners.let { cornerPoints ->
-            tl = cornerPoints[0] ?: Point()
-            tr = cornerPoints[1] ?: Point()
-            br = cornerPoints[2] ?: Point()
-            bl = cornerPoints[3] ?: Point()
-        }
-        
-        ratioX = size.width / width.toDouble()
-        ratioY = size.height / height.toDouble()
-        
-        resize()
-        cropMode = true
-        invalidate()
-    }
-
-    fun onCornersNotDetected() {
-        resetQuadrilateral()
+    private fun movePoints() {
+        path.reset()
+        path.moveTo(tl.x.toFloat(), tl.y.toFloat())
+        path.lineTo(tr.x.toFloat(), tr.y.toFloat())
+        path.lineTo(br.x.toFloat(), br.y.toFloat())
+        path.lineTo(bl.x.toFloat(), bl.y.toFloat())
+        path.close()
         invalidate()
     }
 
@@ -299,17 +231,64 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         bl = corners.corners[3] ?: Point()
 
         resize()
-        invalidate()
+        movePoints()
+    }
+
+    fun onCornersNotDetected() {
+        if (!userIsEditing) {
+            resetQuadrilateral()
+            invalidate()
+        }
+    }
+
+    fun onCorners2Crop(corners: Corners?, size: Size?, paperWidth: Int, paperHeight: Int) {
+        if (size == null) {
+            return
+        }
+
+        cropMode = true
+        tl = corners?.corners?.get(0) ?: Point(size.width * 0.1, size.height * 0.1)
+        tr = corners?.corners?.get(1) ?: Point(size.width * 0.9, size.height * 0.1)
+        br = corners?.corners?.get(2) ?: Point(size.width * 0.9, size.height * 0.9)
+        bl = corners?.corners?.get(3) ?: Point(size.width * 0.1, size.height * 0.9)
+        ratioX = size.width / paperWidth
+        ratioY = size.height / paperHeight
+        resize()
+        movePoints()
+    }
+
+    fun getCorners2Crop(): List<Point> {
+        reverseSize()
+        return listOf(tl, tr, br, bl)
+    }
+
+    private fun resetQuadrilateral() {
+        tl = Point(100.0, 100.0)
+        tr = Point(500.0, 100.0)
+        br = Point(500.0, 500.0)
+        bl = Point(100.0, 500.0)
+        movePoints()
     }
 
     private fun resize() {
-        tl.x /= ratioX; tl.y /= ratioY
-        tr.x /= ratioX; tr.y /= ratioY
-        br.x /= ratioX; br.y /= ratioY
-        bl.x /= ratioX; bl.y /= ratioY
+        tl.x = tl.x / ratioX
+        tl.y = tl.y / ratioY
+        tr.x = tr.x / ratioX
+        tr.y = tr.y / ratioY
+        br.x = br.x / ratioX
+        br.y = br.y / ratioY
+        bl.x = bl.x / ratioX
+        bl.y = bl.y / ratioY
     }
 
-    fun getActualCorners(): List<Point> {
-        return listOf(tl, tr, br, bl).map { Point(it.x * ratioX, it.y * ratioY) }
+    private fun reverseSize() {
+        tl.x = tl.x * ratioX
+        tl.y = tl.y * ratioY
+        tr.x = tr.x * ratioX
+        tr.y = tr.y * ratioY
+        br.x = br.x * ratioX
+        br.y = br.y * ratioY
+        bl.x = bl.x * ratioX
+        bl.y = bl.y * ratioY
     }
 }
