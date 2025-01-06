@@ -57,8 +57,10 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var activeCorner: Point? = null
     private var activeSide = -1
 
-    var cropMode = true // Enables or disables crop editing
+    var cropMode = false // Enables or disables crop editing
 
+    var cropMode = false  // Start with crop mode disabled
+    
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
@@ -71,16 +73,18 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         path.close()
         canvas?.drawPath(path, rectPaint)
 
-        // Draw corners
-        drawCorner(tl, canvas)
-        drawCorner(tr, canvas)
-        drawCorner(br, canvas)
-        drawCorner(bl, canvas)
+        // Only draw corners and touch targets in crop mode
+        if (cropMode) {
+            // Draw corners
+            drawCorner(tl, canvas)
+            drawCorner(tr, canvas)
+            drawCorner(br, canvas)
+            drawCorner(bl, canvas)
 
-        // Draw touch targets for sides
-        if (cropMode) drawTouchTargets(canvas)
+            // Draw touch targets for sides
+            drawTouchTargets(canvas)
+        }
     }
-
     private fun drawCorner(point: Point, canvas: Canvas?) {
         canvas?.drawCircle(point.x.toFloat(), point.y.toFloat(), DEFAULT_CIRCLE_RADIUS, cornerPaint)
     }
@@ -138,10 +142,29 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun detectTouchedCorner(x: Float, y: Float): Point? {
-        val corners = listOf(tl, tr, br, bl)
-        return corners.firstOrNull {
-            abs(it.x - x) < DEFAULT_CIRCLE_RADIUS * 2 && abs(it.y - y) < DEFAULT_CIRCLE_RADIUS * 2
-        }
+        // Log touch coordinates for debugging
+        Log.d(TAG, "Touch at x=$x, y=$y")
+        
+        val touchRadius = DEFAULT_CIRCLE_RADIUS * 3 // Increase touch area
+        
+        // Check each corner with euclidean distance for more accurate touch detection
+        val corners = listOf(
+            Pair(tl, "TL"),
+            Pair(tr, "TR"),
+            Pair(br, "BR"),
+            Pair(bl, "BL")
+        )
+        
+        return corners.firstOrNull { (corner, name) ->
+            val dx = corner.x - x
+            val dy = corner.y - y
+            val distance = sqrt(dx * dx + dy * dy)
+            
+            // Log distance for debugging
+            Log.d(TAG, "$name corner distance: $distance")
+            
+            distance < touchRadius
+        }?.first
     }
 
     private fun detectTouchedSide(x: Float, y: Float): Int {
@@ -166,25 +189,26 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             br -> br = Point(br.x + dx, br.y + dy)
             bl -> bl = Point(bl.x + dx, bl.y + dy)
         }
+        invalidate()
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
         when (sideIndex) {
             0 -> { // Top side
-                tl = Point(tl.x, tl.y + dy)
-                tr = Point(tr.x, tr.y + dy)
+                tl = Point(tl.x + dx, tl.y + dy)
+                tr = Point(tr.x + dx, tr.y + dy)
             }
             1 -> { // Right side
-                tr = Point(tr.x + dx, tr.y)
-                br = Point(br.x + dx, br.y)
+                tr = Point(tr.x + dx, tr.y + dy)
+                br = Point(br.x + dx, br.y + dy)
             }
             2 -> { // Bottom side
-                br = Point(br.x, br.y + dy)
-                bl = Point(bl.x, bl.y + dy)
+                br = Point(br.x + dx, br.y + dy)
+                bl = Point(bl.x + dx, bl.y + dy)
             }
             3 -> { // Left side
-                bl = Point(bl.x + dx, bl.y)
-                tl = Point(tl.x + dx, tl.y)
+                bl = Point(bl.x + dx, bl.y + dy)
+                tl = Point(tl.x + dx, tl.y + dy)
             }
         }
     }
