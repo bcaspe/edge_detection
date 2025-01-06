@@ -188,6 +188,20 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         invalidate()
     }
 
+    fun onCorners2Crop() {
+        cropMode = true
+        invalidate()
+    }
+
+    fun getCorners2Crop(): List<Point> {
+        return listOf(tl, tr, br, bl)
+    }
+
+    fun onCornersNotDetected() {
+        resetQuadrilateral()
+        invalidate()
+    }
+
     fun onCornersDetected(corners: Corners) {
         ratioX = corners.size.width / measuredWidth
         ratioY = corners.size.height / measuredHeight
