@@ -174,7 +174,8 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private fun validateQuadrilateral() {
         val sides = listOf(Pair(tl, tr), Pair(tr, br), Pair(br, bl), Pair(bl, tl))
         val isValid = sides.all { (p1, p2) ->
-            sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2)) > MIN_SIDE_LENGTH
+            // Replace .pow(2) with * for squaring
+            sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)) > MIN_SIDE_LENGTH
         }
         if (!isValid) resetQuadrilateral()
     }
