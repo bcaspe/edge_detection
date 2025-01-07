@@ -223,7 +223,10 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             tr -> Point(tr.x + dx, tr.y + dy)
             br -> Point(br.x + dx, br.y + dy)
             bl -> Point(bl.x + dx, bl.y + dy)
-            else -> return
+            else -> {
+                Log.d(TAG, "Invalid move 1")
+                return
+            }
         }
         
         // Only update if the new position maintains minimum side lengths
@@ -235,6 +238,8 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 bl -> bl = newPoint
             
             }   
+        } else {
+            Log.d(TAG, "Invalid move 2")
         }
     }
 
