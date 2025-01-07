@@ -179,7 +179,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         return true
     }
 
-    private fun detectTouchedCorner(x: Float, y: Float): Point? {
+    private fun detectTouchedCorner(x: Float, y: Float): Corner? {
         val touchRadius = DEFAULT_CIRCLE_RADIUS * 3
         val corners = listOf(
             Triple(tl, "TL", Corner.TopLeft),
@@ -238,12 +238,6 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         } else {
             Log.d(TAG, "Invalid move - would create invalid quadrilateral")
         }
-    }
-
-    // Add helper function to compare Points
-    private fun isSamePoint(p1: Point, p2: Point): Boolean {
-        val epsilon = 0.0001  // Small threshold for floating point comparison
-        return abs(p1.x - p2.x) < epsilon && abs(p1.y - p2.y) < epsilon
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
