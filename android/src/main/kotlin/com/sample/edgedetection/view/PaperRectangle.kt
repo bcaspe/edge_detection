@@ -218,29 +218,38 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun moveCorner(corner: Point, dx: Float, dy: Float) {
-        val newPoint = when (corner) {
-            tl -> Point(tl.x + dx, tl.y + dy)
-            tr -> Point(tr.x + dx, tr.y + dy)
-            br -> Point(br.x + dx, br.y + dy)
-            bl -> Point(bl.x + dx, bl.y + dy)
+        val newPoint = when {
+            isSamePoint(corner, tl) -> Point(tl.x + dx, tl.y + dy)
+            isSamePoint(corner, tr) -> Point(tr.x + dx, tr.y + dy)
+            isSamePoint(corner, br) -> Point(br.x + dx, br.y + dy)
+            isSamePoint(corner, bl) -> Point(bl.x + dx, bl.y + dy)
             else -> {
-                Log.d(TAG, "Invalid move 1")
+                Log.d(TAG, "Invalid move - corner not matched to any corner point")
                 return
             }
         }
         
+        // Add logging for the new point
+        Log.d(TAG, "New point calculated: (${newPoint.x}, ${newPoint.y})")
+        
         // Only update if the new position maintains minimum side lengths
         if (isValidQuadrilateral(corner, newPoint)) {
-            when (corner) {
-                tl -> tl = newPoint
-                tr -> tr = newPoint
-                br -> br = newPoint
-                bl -> bl = newPoint
-            
-            }   
+            when {
+                isSamePoint(corner, tl) -> tl = newPoint
+                isSamePoint(corner, tr) -> tr = newPoint
+                isSamePoint(corner, br) -> br = newPoint
+                isSamePoint(corner, bl) -> bl = newPoint
+            }
+            movePoints()
         } else {
-            Log.d(TAG, "Invalid move 2")
+            Log.d(TAG, "Invalid move - would create invalid quadrilateral")
         }
+    }
+
+    // Add helper function to compare Points
+    private fun isSamePoint(p1: Point, p2: Point): Boolean {
+        val epsilon = 0.0001  // Small threshold for floating point comparison
+        return abs(p1.x - p2.x) < epsilon && abs(p1.y - p2.y) < epsilon
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
