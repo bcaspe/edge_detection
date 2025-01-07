@@ -63,6 +63,15 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             Log.e(TAG, "Reset button clicked!")
             mPresenter.reset() // Reset logic
         }
+
+        findViewById<ImageView>(R.id.done).setOnClickListener {
+            Log.e(TAG, "Saved touched!")
+            mPresenter.save()
+            setResult(Activity.RESULT_OK)
+            System.gc()
+            finish()
+            return true // Save logic
+        }
     }
 
     override fun getPaper(): ImageView = findViewById(R.id.paper)
@@ -115,6 +124,16 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         buttonRow.visibility = if (showMenuItems) View.VISIBLE else View.GONE
         doneButton.visibility = if (showMenuItems) View.VISIBLE else View.GONE
         cropButton.visibility = if (showMenuItems) View.GONE else View.VISIBLE
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {  // This is the ID for the back button in the title bar
+                onBackPressed()     // Reuse your existing back button logic
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     override fun onBackPressed() {
