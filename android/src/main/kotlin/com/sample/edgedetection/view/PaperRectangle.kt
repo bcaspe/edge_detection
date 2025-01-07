@@ -173,23 +173,24 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun moveCorner(corner: Point, dx: Float, dy: Float) {
-    val newPoint = when (corner) {
-        tl -> Point(tl.x + dx, tl.y + dy)
-        tr -> Point(tr.x + dx, tr.y + dy)
-        br -> Point(br.x + dx, br.y + dy)
-        bl -> Point(bl.x + dx, bl.y + dy)
-        else -> return
-    }
-    
-    // Only update if the new position maintains minimum side lengths
-    if (isValidQuadrilateral(corner, newPoint)) {
-        when (corner) {
-            tl -> tl = newPoint
-            tr -> tr = newPoint
-            br -> br = newPoint
-            bl -> bl = newPoint
+        val newPoint = when (corner) {
+            tl -> Point(tl.x + dx, tl.y + dy)
+            tr -> Point(tr.x + dx, tr.y + dy)
+            br -> Point(br.x + dx, br.y + dy)
+            bl -> Point(bl.x + dx, bl.y + dy)
+            else -> return
+        }
         
-        }   
+        // Only update if the new position maintains minimum side lengths
+        if (isValidQuadrilateral(corner, newPoint)) {
+            when (corner) {
+                tl -> tl = newPoint
+                tr -> tr = newPoint
+                br -> br = newPoint
+                bl -> bl = newPoint
+            
+            }   
+        }
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
