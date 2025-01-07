@@ -13,6 +13,8 @@ import org.opencv.core.Size
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+private const val TAG = "PaperRectangle"
+
 class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
 
     
@@ -50,7 +52,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var latestDownY = 0F
     private var point2Move = Point()
     private var userIsEditing = false
-    private const val TAG = "PaperRectangle"
+    
 
     var tl = Point(100.0, 100.0)
     var tr = Point(500.0, 100.0)
