@@ -15,6 +15,13 @@ import kotlin.math.sqrt
 
 private const val TAG = "PaperRectangle"
 
+sealed class Corner {
+    object TopLeft : Corner()
+    object TopRight : Corner()
+    object BottomRight : Corner()
+    object BottomLeft : Corner()
+}
+
 class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
 
     
@@ -59,7 +66,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     var br = Point(500.0, 500.0)
     var bl = Point(100.0, 500.0)
 
-    private var activeCorner: Point? = null
+    private var activeCorner: Corner? = null
     private var activeSide = -1
     var cropMode = false
 
@@ -123,36 +130,28 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 latestDownY = event.y
                 activeCorner = detectTouchedCorner(event.x, event.y)
                 if (activeCorner != null) {
-                // Log which corner was touched
-                val cornerName = when(activeCorner) {
-                    tl -> "TOP_LEFT"
-                    tr -> "TOP_RIGHT"
-                    br -> "BOTTOM_RIGHT"
-                    bl -> "BOTTOM_LEFT"
-                    else -> "UNKNOWN"
-                }
-                Log.d(TAG, "Corner touched: $cornerName")
-            } else {
-                activeSide = detectTouchedSide(event.x, event.y)
-                if (activeSide != -1) {
-                    // Log which side was touched
-                    val sideName = when(activeSide) {
-                        0 -> "TOP"
-                        1 -> "RIGHT"
-                        2 -> "BOTTOM"
-                        3 -> "LEFT"
-                        else -> "UNKNOWN"
-                    }
-                    Log.d(TAG, "Side touched: $sideName")
+                    Log.d(TAG, "Corner touched: ${activeCorner!!::class.simpleName}")
                 } else {
-                    Log.d(TAG, "No corner or side touched")
+                    activeSide = detectTouchedSide(event.x, event.y)
+                    if (activeSide != -1) {
+                        // Log which side was touched
+                        val sideName = when(activeSide) {
+                            0 -> "TOP"
+                            1 -> "RIGHT"
+                            2 -> "BOTTOM"
+                            3 -> "LEFT"
+                            else -> "UNKNOWN"
+                        }
+                        Log.d(TAG, "Side touched: $sideName")
+                    } else {
+                        Log.d(TAG, "No corner or side touched")
+                    }
                 }
-            }
-            
-            if (activeCorner != null || activeSide != -1) {
-                userIsEditing = true
-                Log.d(TAG, "User started editing")
-            }
+                
+                if (activeCorner != null || activeSide != -1) {
+                    userIsEditing = true
+                    Log.d(TAG, "User started editing")
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (activeCorner != null) {
@@ -183,24 +182,25 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private fun detectTouchedCorner(x: Float, y: Float): Point? {
         val touchRadius = DEFAULT_CIRCLE_RADIUS * 3
         val corners = listOf(
-            Pair(tl, "TL"),
-            Pair(tr, "TR"),
-            Pair(br, "BR"),
-            Pair(bl, "BL")
+            Triple(tl, "TL", Corner.TopLeft),
+            Triple(tr, "TR", Corner.TopRight),
+            Triple(br, "BR", Corner.BottomRight),
+            Triple(bl, "BL", Corner.BottomLeft)
         )
-        corners.forEach { (corner, name) ->
-            val dx = corner.x - x
-            val dy = corner.y - y
+        
+        corners.forEach { (point, name, _) ->
+            val dx = point.x - x
+            val dy = point.y - y
             val distance = sqrt(dx * dx + dy * dy)
-            Log.v(TAG, "Distance to corner $name: $distance (radius: $touchRadius)")
+            Log.d(TAG, "Distance to corner $name: $distance (radius: $touchRadius)")
         }
         
-        return corners.firstOrNull { (corner, name) ->
-            val dx = corner.x - x
-            val dy = corner.y - y
+        return corners.firstOrNull { (point, _, _) ->
+            val dx = point.x - x
+            val dy = point.y - y
             val distance = sqrt(dx * dx + dy * dy)
             distance < touchRadius
-        }?.first
+        }?.third
     }
 
     private fun detectTouchedSide(x: Float, y: Float): Int {
@@ -217,28 +217,22 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         }
     }
 
-    private fun moveCorner(corner: Point, dx: Float, dy: Float) {
-        val newPoint = when {
-            isSamePoint(corner, tl) -> Point(tl.x + dx, tl.y + dy)
-            isSamePoint(corner, tr) -> Point(tr.x + dx, tr.y + dy)
-            isSamePoint(corner, br) -> Point(br.x + dx, br.y + dy)
-            isSamePoint(corner, bl) -> Point(bl.x + dx, bl.y + dy)
-            else -> {
-                Log.d(TAG, "Invalid move - corner not matched to any corner point")
-                return
-            }
+    private fun moveCorner(corner: Corner, dx: Float, dy: Float) {
+        val newPoint = when (corner) {
+            is Corner.TopLeft -> Point(tl.x + dx, tl.y + dy)
+            is Corner.TopRight -> Point(tr.x + dx, tr.y + dy)
+            is Corner.BottomRight -> Point(br.x + dx, br.y + dy)
+            is Corner.BottomLeft -> Point(bl.x + dx, bl.y + dy)
         }
         
-        // Add logging for the new point
-        Log.d(TAG, "New point calculated: (${newPoint.x}, ${newPoint.y})")
+        Log.d(TAG, "Moving ${corner::class.simpleName} to (${newPoint.x}, ${newPoint.y})")
         
-        // Only update if the new position maintains minimum side lengths
         if (isValidQuadrilateral(corner, newPoint)) {
-            when {
-                isSamePoint(corner, tl) -> tl = newPoint
-                isSamePoint(corner, tr) -> tr = newPoint
-                isSamePoint(corner, br) -> br = newPoint
-                isSamePoint(corner, bl) -> bl = newPoint
+            when (corner) {
+                is Corner.TopLeft -> tl = newPoint
+                is Corner.TopRight -> tr = newPoint
+                is Corner.BottomRight -> br = newPoint
+                is Corner.BottomLeft -> bl = newPoint
             }
             movePoints()
         } else {
@@ -283,24 +277,18 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         invalidate()
     }
 
-    private fun isValidQuadrilateral(corner: Point, newPoint: Point): Boolean {
-        // Check minimum side lengths
-        val minLength = MIN_SIDE_LENGTH
-        
-        // Create temporary points for validation
-        val testPoints = when(corner) {
-            tl -> listOf(newPoint, tr, br, bl)
-            tr -> listOf(tl, newPoint, br, bl) 
-            br -> listOf(tl, tr, newPoint, bl)
-            bl -> listOf(tl, tr, br, newPoint)
-            else -> return false
+    private fun isValidQuadrilateral(corner: Corner, newPoint: Point): Boolean {
+        val testPoints = when (corner) {
+            is Corner.TopLeft -> listOf(newPoint, tr, br, bl)
+            is Corner.TopRight -> listOf(tl, newPoint, br, bl)
+            is Corner.BottomRight -> listOf(tl, tr, newPoint, bl)
+            is Corner.BottomLeft -> listOf(tl, tr, br, newPoint)
         }
-    
-    // Check all sides maintain minimum length
-    return testPoints.zipWithNext().all { (p1, p2) ->
-        val dx = p1.x - p2.x
-        val dy = p1.y - p2.y
-            sqrt(dx * dx + dy * dy) >= minLength
+        
+        return testPoints.zipWithNext().all { (p1, p2) ->
+            val dx = p1.x - p2.x
+            val dy = p1.y - p2.y
+            sqrt(dx * dx + dy * dy) >= MIN_SIDE_LENGTH
         }
     }
 
