@@ -54,32 +54,36 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Create menu items programmatically
-        menu.add(Menu.NONE, R.id.action_label, Menu.NONE, "")
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            .setVisible(showMenuItems)
+    menu.add(Menu.NONE, R.id.action_label, Menu.NONE, "").apply {
+        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        isVisible = showMenuItems
+    }
 
-        // Create enhance group
-        val enhanceGroup = menu.addSubMenu(R.id.enhance_group, Menu.NONE, Menu.NONE, "")
-        
-        enhanceGroup.add(Menu.NONE, R.id.rotation_image, Menu.NONE, "")
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            .setVisible(showMenuItems)
-        
-        enhanceGroup.add(Menu.NONE, R.id.gray, Menu.NONE, 
-            initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE))
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        
-        enhanceGroup.add(Menu.NONE, R.id.reset, Menu.NONE,
-            initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE))
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    // Create enhance group
+    val enhanceGroup = menu.addSubMenu(R.id.enhance_group, Menu.NONE, Menu.NONE, "")
+    
+    enhanceGroup.add(Menu.NONE, R.id.rotation_image, Menu.NONE, "").apply {
+        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        isVisible = showMenuItems
+    }
+    
+    enhanceGroup.add(Menu.NONE, R.id.gray, Menu.NONE, 
+        initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE)).apply {
+        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    }
+    
+    enhanceGroup.add(Menu.NONE, R.id.reset, Menu.NONE,
+        initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE)).apply {
+        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    }
 
-        menu.setGroupVisible(R.id.enhance_group, showMenuItems)
+    menu.setGroupVisible(R.id.enhance_group, showMenuItems)
 
-        // Update crop button visibility
-        findViewById<ImageView>(R.id.crop).visibility = 
-            if (showMenuItems) View.GONE else View.VISIBLE
+    // Update crop button visibility
+    findViewById<ImageView>(R.id.crop).visibility = 
+        if (showMenuItems) View.GONE else View.VISIBLE
 
-        return true
+    return true
     }
 
 
