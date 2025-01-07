@@ -32,6 +32,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             // we have to initialize everything in post when the view has been drawn and we have the actual height and width of the whole view
             mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
         }
+        changeMenuVisibility(false)
     }
 
     override fun provideContentViewId(): Int = R.layout.activity_crop
@@ -40,6 +41,8 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
         mPresenter = CropPresenter(this, initialBundle)
+        
+
         findViewById<ImageView>(R.id.crop).setOnClickListener {
             Log.e(TAG, "Crop touched!")
             mPresenter.crop()
@@ -59,12 +62,6 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         findViewById<ImageView>(R.id.reset).setOnClickListener {
             Log.e(TAG, "Reset button clicked!")
             mPresenter.reset() // Reset logic
-        }
-
-        findViewById<ImageView>(R.id.crop).setOnClickListener {
-            Log.e(TAG, "Crop button clicked!")
-            mPresenter.crop()
-            changeMenuVisibility(true)
         }
     }
 
@@ -122,10 +119,12 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     override fun onBackPressed() {
         if (showMenuItems) {
+            Log.e(TAG, "Back button clicked! resetting")
             // If menu items are visible (indicating that the image is cropped), revert to pre-cropped state
             mPresenter.reset() // Call the reset method in the presenter to revert changes
             changeMenuVisibility(false) // Hide the menu items
         } else {
+            Log.e(TAG, "Back button clicked! going back")
             // If menu items are not visible, proceed with default back button behavior
             super.onBackPressed()
         }
