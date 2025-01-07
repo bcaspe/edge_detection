@@ -110,6 +110,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
 
     private fun changeMenuVisibility(showMenuItems: Boolean) {
+        this.showMenuItems = showMenuItems
         val buttonRow = findViewById<LinearLayout>(R.id.button_row)
         val doneButton = findViewById<ImageView>(R.id.done)
         val cropButton = findViewById<ImageView>(R.id.crop)
