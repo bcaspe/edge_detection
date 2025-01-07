@@ -15,6 +15,8 @@ import kotlin.math.sqrt
 
 class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
 
+    
+
     companion object {
         private const val DEFAULT_CIRCLE_RADIUS = 20F
         private const val DEFAULT_TOUCH_TARGET_SIZE = 40F
@@ -23,7 +25,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private val rectPaint = Paint().apply {
-        style = Paint.Style.STROKE
+        style = Paint.Style.FILL_AND_STROKE
         strokeWidth = STROKE_WIDTH
         color = Color.argb(128, 173, 216, 230) // Light blue with transparency
         isAntiAlias = true
@@ -48,6 +50,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var latestDownY = 0F
     private var point2Move = Point()
     private var userIsEditing = false
+    private const val TAG = "PaperRectangle"
 
     var tl = Point(100.0, 100.0)
     var tr = Point(500.0, 100.0)
@@ -110,23 +113,51 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (!cropMode || event == null) return false
-
+        Log.d(TAG, "Touch DOWN at x: ${event.x}, y: ${event.y}")
+            
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 latestDownX = event.x
                 latestDownY = event.y
                 activeCorner = detectTouchedCorner(event.x, event.y)
-                if (activeCorner == null) {
-                    activeSide = detectTouchedSide(event.x, event.y)
+                if (activeCorner != null) {
+                // Log which corner was touched
+                val cornerName = when(activeCorner) {
+                    tl -> "TOP_LEFT"
+                    tr -> "TOP_RIGHT"
+                    br -> "BOTTOM_RIGHT"
+                    bl -> "BOTTOM_LEFT"
+                    else -> "UNKNOWN"
                 }
-                if (activeCorner != null || activeSide != -1) {
-                    userIsEditing = true
+                Log.d(TAG, "Corner touched: $cornerName")
+            } else {
+                activeSide = detectTouchedSide(event.x, event.y)
+                if (activeSide != -1) {
+                    // Log which side was touched
+                    val sideName = when(activeSide) {
+                        0 -> "TOP"
+                        1 -> "RIGHT"
+                        2 -> "BOTTOM"
+                        3 -> "LEFT"
+                        else -> "UNKNOWN"
+                    }
+                    Log.d(TAG, "Side touched: $sideName")
+                } else {
+                    Log.d(TAG, "No corner or side touched")
                 }
+            }
+            
+            if (activeCorner != null || activeSide != -1) {
+                userIsEditing = true
+                Log.d(TAG, "User started editing")
+            }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (activeCorner != null) {
+                    Log.v(TAG, "Moving corner to x: ${event.x}, y: ${event.y}")
                     moveCorner(activeCorner!!, event.x - latestDownX, event.y - latestDownY)
                 } else if (activeSide != -1) {
+                    Log.v(TAG, "Moving side to x: ${event.x}, y: ${event.y}")
                     moveSide(activeSide, event.x - latestDownX, event.y - latestDownY)
                 }
                 latestDownX = event.x
@@ -134,6 +165,12 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 movePoints()
             }
             MotionEvent.ACTION_UP -> {
+                Log.d(TAG, "Touch UP at x: ${event.x}, y: ${event.y}")
+                if (activeCorner != null) {
+                    Log.d(TAG, "Released corner")
+                } else if (activeSide != -1) {
+                    Log.d(TAG, "Released side")
+                }
                 activeCorner = null
                 activeSide = -1
             }
@@ -149,6 +186,12 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             Pair(br, "BR"),
             Pair(bl, "BL")
         )
+        corners.forEach { (corner, name) ->
+            val dx = corner.x - x
+            val dy = corner.y - y
+            val distance = sqrt(dx * dx + dy * dy)
+            Log.v(TAG, "Distance to corner $name: $distance (radius: $touchRadius)")
+        }
         
         return corners.firstOrNull { (corner, name) ->
             val dx = corner.x - x
