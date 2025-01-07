@@ -44,6 +44,27 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             mPresenter.crop()
             changeMenuVisibility(true)
         }
+
+        findViewById<ImageView>(R.id.black_white).setOnClickListener {
+            Log.e(TAG, "Black and White button clicked!")
+            mPresenter.enhance() // Black and white logic
+        }
+
+        findViewById<ImageView>(R.id.rotate).setOnClickListener {
+            Log.e(TAG, "Rotate button clicked!")
+            mPresenter.rotate() // Rotate logic
+        }
+
+        findViewById<ImageView>(R.id.reset).setOnClickListener {
+            Log.e(TAG, "Reset button clicked!")
+            mPresenter.reset() // Reset logic
+        }
+
+        findViewById<ImageView>(R.id.crop).setOnClickListener {
+            Log.e(TAG, "Crop button clicked!")
+            mPresenter.crop()
+            changeMenuVisibility(true)
+        }
     }
 
     override fun getPaper(): ImageView = findViewById(R.id.paper)
@@ -52,44 +73,49 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     override fun getCroppedPaper() = findViewById<ImageView>(R.id.picture_cropped)
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Create menu items programmatically
-    menu.add(Menu.NONE, R.id.action_label, Menu.NONE, "").apply {
-        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        isVisible = showMenuItems
-    }
+    // override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    //     // Create menu items programmatically
+    // menu.add(Menu.NONE, R.id.action_label, Menu.NONE, "").apply {
+    //     setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    //     isVisible = showMenuItems
+    // }
 
-    // Create enhance group
-    val enhanceGroup = menu.addSubMenu(R.id.enhance_group, Menu.NONE, Menu.NONE, "")
+    // // Create enhance group
+    // val enhanceGroup = menu.addSubMenu(R.id.enhance_group, Menu.NONE, Menu.NONE, "")
     
-    enhanceGroup.add(Menu.NONE, R.id.rotation_image, Menu.NONE, "").apply {
-        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        isVisible = showMenuItems
-    }
+    // enhanceGroup.add(Menu.NONE, R.id.rotation_image, Menu.NONE, "").apply {
+    //     setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    //     isVisible = showMenuItems
+    // }
     
-    enhanceGroup.add(Menu.NONE, R.id.gray, Menu.NONE, 
-        initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE)).apply {
-        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-    }
+    // enhanceGroup.add(Menu.NONE, R.id.gray, Menu.NONE, 
+    //     initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE)).apply {
+    //     setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    // }
     
-    enhanceGroup.add(Menu.NONE, R.id.reset, Menu.NONE,
-        initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE)).apply {
-        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-    }
+    // enhanceGroup.add(Menu.NONE, R.id.reset, Menu.NONE,
+    //     initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE)).apply {
+    //     setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+    // }
 
-    menu.setGroupVisible(R.id.enhance_group, showMenuItems)
+    // menu.setGroupVisible(R.id.enhance_group, showMenuItems)
 
-    // Update crop button visibility
-    findViewById<ImageView>(R.id.crop).visibility = 
-        if (showMenuItems) View.GONE else View.VISIBLE
+    // // Update crop button visibility
+    // findViewById<ImageView>(R.id.crop).visibility = 
+    //     if (showMenuItems) View.GONE else View.VISIBLE
 
-    return true
-    }
+    // return true
+    // }
 
 
     private fun changeMenuVisibility(showMenuItems: Boolean) {
-        this.showMenuItems = showMenuItems
-        invalidateOptionsMenu()
+        val buttonRow = findViewById<LinearLayout>(R.id.button_row)
+        val doneButton = findViewById<LinearLayout>(R.id.done)
+        val cropButton = findViewById<ImageView>(R.id.crop)
+
+        buttonRow.visibility = if (showMenuItems) View.VISIBLE else View.GONE
+        doneButton.visibility = if (showMenuItems) View.VISIBLE else View.GONE
+        cropButton.visibility = if (showMenuItems) View.GONE else View.VISIBLE
     }
 
     override fun onBackPressed() {
@@ -103,38 +129,38 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         }
     }
 
-    // handle button activities
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            android.R.id.home -> {
-                onBackPressed()
-                return true
-            }
-            R.id.action_label -> {
-                Log.e(TAG, "Saved touched!")
-                item.isEnabled = false
-                mPresenter.save()
-                setResult(Activity.RESULT_OK)
-                System.gc()
-                finish()
-                return true
-            }
-            R.id.rotation_image -> {
-                Log.e(TAG, "Rotate touched!")
-                mPresenter.rotate()
-                return true
-            }
-            R.id.gray -> {
-                Log.e(TAG, "Black White touched!")
-                mPresenter.enhance()
-                return true
-            }
-            R.id.reset -> {
-                Log.e(TAG, "Reset touched!")
-                mPresenter.reset()
-                return true
-            }
-            else -> return super.onOptionsItemSelected(item)
-        }
-    }
+    // // handle button activities
+    // override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    //     when (item.itemId) {
+    //         android.R.id.home -> {
+    //             onBackPressed()
+    //             return true
+    //         }
+    //         R.id.action_label -> {
+    //             Log.e(TAG, "Saved touched!")
+    //             item.isEnabled = false
+    //             mPresenter.save()
+    //             setResult(Activity.RESULT_OK)
+    //             System.gc()
+    //             finish()
+    //             return true
+    //         }
+    //         R.id.rotation_image -> {
+    //             Log.e(TAG, "Rotate touched!")
+    //             mPresenter.rotate()
+    //             return true
+    //         }
+    //         R.id.gray -> {
+    //             Log.e(TAG, "Black White touched!")
+    //             mPresenter.enhance()
+    //             return true
+    //         }
+    //         R.id.reset -> {
+    //             Log.e(TAG, "Reset touched!")
+    //             mPresenter.reset()
+    //             return true
+    //         }
+    //         else -> return super.onOptionsItemSelected(item)
+    //     }
+    // }
 }
