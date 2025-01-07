@@ -59,6 +59,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var latestDownY = 0F
     private var point2Move = Point()
     private var userIsEditing = false
+    private var centerMoveMode = false
     
 
     var tl = Point(100.0, 100.0)
@@ -131,27 +132,37 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 activeCorner = detectTouchedCorner(event.x, event.y)
                 if (activeCorner != null) {
                     Log.d(TAG, "Corner touched: ${activeCorner!!::class.simpleName}")
-                } else {
-                    activeSide = detectTouchedSide(event.x, event.y)
-                    if (activeSide != -1) {
-                        // Log which side was touched
-                        val sideName = when(activeSide) {
-                            0 -> "TOP"
-                            1 -> "RIGHT"
-                            2 -> "BOTTOM"
-                            3 -> "LEFT"
-                            else -> "UNKNOWN"
-                        }
-                        Log.d(TAG, "Side touched: $sideName")
-                    } else {
-                        Log.d(TAG, "No corner or side touched")
+                    userIsEditing = true
+                    return true
+                } 
+
+                activeSide = detectTouchedSide(event.x, event.y)
+                if (activeSide != -1) {
+                    // Log which side was touched
+                    val sideName = when(activeSide) {
+                        0 -> "TOP"
+                        1 -> "RIGHT"
+                        2 -> "BOTTOM"
+                        3 -> "LEFT"
+                        else -> "UNKNOWN"
                     }
+                    Log.d(TAG, "Side touched: $sideName")
+                    userIsEditing = true
+                    return true
+                } else {
+                    Log.d(TAG, "No corner or side touched")
+                }
+
+                // Finally check if it's a center touch
+                if (detectTouchedCenter(event.x, event.y)) {
+                    centerMoveMode = true
+                    userIsEditing = true
+                    Log.d(TAG, "Center area touched")
+                    return true
                 }
                 
-                if (activeCorner != null || activeSide != -1) {
-                    userIsEditing = true
-                    Log.d(TAG, "User started editing")
-                }
+                
+                
             }
             MotionEvent.ACTION_MOVE -> {
                 if (activeCorner != null) {
@@ -160,11 +171,15 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 } else if (activeSide != -1) {
                     Log.v(TAG, "Moving side to x: ${event.x}, y: ${event.y}")
                     moveSide(activeSide, event.x - latestDownX, event.y - latestDownY)
+                } else if (centerMoveMode) {
+                    Log.v(TAG, "Moving entire shape dx: ${event.x - latestDownX}, dy: ${event.y - latestDownY}")
+                    moveEntireShape(event.x - latestDownX, event.y - latestDownY)
                 }
                 latestDownX = event.x
                 latestDownY = event.y
                 movePoints()
             }
+
             MotionEvent.ACTION_UP -> {
                 Log.d(TAG, "Touch UP at x: ${event.x}, y: ${event.y}")
                 if (activeCorner != null) {
@@ -174,6 +189,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 }
                 activeCorner = null
                 activeSide = -1
+                centerMoveMode = false
             }
         }
         return true
@@ -217,6 +233,57 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         }
     }
 
+    private fun detectTouchedCenter(x: Float, y: Float): Boolean {
+    // Function to check if point is on the left side of a line
+    fun isLeftOfLine(lineStart: Point, lineEnd: Point, point: Point): Boolean {
+        return ((lineEnd.x - lineStart.x) * (point.y - lineStart.y) - 
+                (lineEnd.y - lineStart.y) * (point.x - lineStart.x)) > 0
+    }
+
+    // Create test point from touch coordinates
+    val testPoint = Point(x.toDouble(), y.toDouble())
+    
+    // Check if point is inside with margin
+    val margin = DEFAULT_TOUCH_TARGET_SIZE
+    
+    // Shrink the quadrilateral by the margin for the test
+    val center = Point(
+        (tl.x + tr.x + br.x + bl.x) / 4,
+        (tl.y + tr.y + br.y + bl.y) / 4
+    )
+
+    // Calculate vectors from center to corners
+    val vectors = listOf(tl, tr, br, bl).map { corner ->
+        Point(corner.x - center.x, corner.y - center.y)
+    }
+
+    // Create shrunk corners by moving towards center by margin
+    val shrunkCorners = vectors.map { vec ->
+        val length = sqrt(vec.x * vec.x + vec.y * vec.y)
+        val scale = (length - margin) / length
+        Point(
+            center.x + vec.x * scale,
+            center.y + vec.y * scale
+        )
+    }
+
+    // Log the test point and shrunk corners
+    Log.d(TAG, "Testing point ($x, $y) against shrunk quadrilateral")
+    shrunkCorners.forEachIndexed { index, point ->
+        Log.d(TAG, "Shrunk corner $index: (${point.x}, ${point.y})")
+    }
+
+    // Check if point is inside the shrunk quadrilateral
+    val isInside = shrunkCorners.indices.all { i ->
+        val start = shrunkCorners[i]
+        val end = shrunkCorners[(i + 1) % 4]
+        isLeftOfLine(start, end, testPoint)
+    }
+
+    Log.d(TAG, "Point is ${if (isInside) "inside" else "outside"} shrunk quadrilateral")
+    return isInside
+}
+
     private fun moveCorner(corner: Corner, dx: Float, dy: Float) {
         val newPoint = when (corner) {
             is Corner.TopLeft -> Point(tl.x + dx, tl.y + dy)
@@ -259,6 +326,18 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
                 tl = Point(tl.x + dx, tl.y + dy)
             }
         }
+    }
+
+    // Add function to move entire shape
+    private fun moveEntireShape(dx: Float, dy: Float) {
+        // Move all points by the delta
+        tl = Point(tl.x + dx, tl.y + dy)
+        tr = Point(tr.x + dx, tr.y + dy)
+        br = Point(br.x + dx, br.y + dy)
+        bl = Point(bl.x + dx, bl.y + dy)
+        
+        Log.v(TAG, "Shape moved by dx: $dx, dy: $dy")
+        Log.v(TAG, "New positions - TL:(${tl.x}, ${tl.y}), TR:(${tr.x}, ${tr.y}), BR:(${br.x}, ${br.y}), BL:(${bl.x}, ${bl.y})")
     }
 
     private fun movePoints() {
