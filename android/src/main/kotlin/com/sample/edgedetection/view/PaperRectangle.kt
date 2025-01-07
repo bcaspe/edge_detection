@@ -23,7 +23,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private val rectPaint = Paint().apply {
-        style = Paint.Style.FILL_AND_STROKE
+        style = Paint.Style.STROKE
         strokeWidth = STROKE_WIDTH
         color = Color.argb(128, 173, 216, 230) // Light blue with transparency
         isAntiAlias = true
@@ -173,12 +173,23 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun moveCorner(corner: Point, dx: Float, dy: Float) {
+    val newPoint = when (corner) {
+        tl -> Point(tl.x + dx, tl.y + dy)
+        tr -> Point(tr.x + dx, tr.y + dy)
+        br -> Point(br.x + dx, br.y + dy)
+        bl -> Point(bl.x + dx, bl.y + dy)
+        else -> return
+    }
+    
+    // Only update if the new position maintains minimum side lengths
+    if (isValidQuadrilateral(corner, newPoint)) {
         when (corner) {
-            tl -> tl = Point(tl.x + dx, tl.y + dy)
-            tr -> tr = Point(tr.x + dx, tr.y + dy)
-            br -> br = Point(br.x + dx, br.y + dy)
-            bl -> bl = Point(bl.x + dx, bl.y + dy)
-        }
+            tl -> tl = newPoint
+            tr -> tr = newPoint
+            br -> br = newPoint
+            bl -> bl = newPoint
+        
+        }   
     }
 
     private fun moveSide(sideIndex: Int, dx: Float, dy: Float) {
@@ -210,6 +221,27 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         path.lineTo(bl.x.toFloat(), bl.y.toFloat())
         path.close()
         invalidate()
+    }
+
+    private fun isValidQuadrilateral(corner: Point, newPoint: Point): Boolean {
+        // Check minimum side lengths
+        val minLength = MIN_SIDE_LENGTH
+        
+        // Create temporary points for validation
+        val testPoints = when(corner) {
+            tl -> listOf(newPoint, tr, br, bl)
+            tr -> listOf(tl, newPoint, br, bl) 
+            br -> listOf(tl, tr, newPoint, bl)
+            bl -> listOf(tl, tr, br, newPoint)
+            else -> return false
+        }
+    
+    // Check all sides maintain minimum length
+    return testPoints.zipWithNext().all { (p1, p2) ->
+        val dx = p1.x - p2.x
+        val dy = p1.y - p2.y
+            sqrt(dx * dx + dy * dy) >= minLength
+        }
     }
 
     fun onCornersDetected(corners: Corners) {
