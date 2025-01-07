@@ -69,8 +69,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             mPresenter.save()
             setResult(Activity.RESULT_OK)
             System.gc()
-            finish()
-            return true // Save logic
+            finish()// Save logic
         }
     }
 
