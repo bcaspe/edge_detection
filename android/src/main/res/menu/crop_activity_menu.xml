@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="HardcodedText">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_label"
         android:icon="@drawable/ic_done"
-        android:title="@string/done"
+        android:title="Done"
         app:showAsAction="always" />
 
     <item
         android:id="@+id/rotation_image"
         android:icon="@drawable/ic_rotate"
-        android:title="@string/rotate"
+        android:title="Rotate"
         app:showAsAction="always" />
 
     <group
@@ -21,12 +19,12 @@
         <item
             android:id="@+id/gray"
             android:icon="@drawable/ic_done"
-            android:title="@string/black"
+            android:title="Black &amp; White"
             app:showAsAction="never" />
         <item
             android:id="@+id/reset"
             android:icon="@drawable/ic_reset_colors"
-            android:title="@string/reset"
+            android:title="Reset"
             app:showAsAction="never" />
     </group>
 </menu>

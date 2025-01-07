@@ -53,26 +53,31 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     override fun getCroppedPaper() = findViewById<ImageView>(R.id.picture_cropped)
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.crop_activity_menu, menu)
+        try {
+            getMenuInflater().inflate(R.menu.crop_activity_menu, menu)
 
-        menu.setGroupVisible(R.id.enhance_group, showMenuItems)
+            menu.setGroupVisible(R.id.enhance_group, showMenuItems)
 
-        menu.findItem(R.id.rotation_image).isVisible = showMenuItems
+            menu.findItem(R.id.rotation_image).isVisible = showMenuItems
 
-        menu.findItem(R.id.gray).title =
-            initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE) as String
-        menu.findItem(R.id.reset).title =
-            initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE) as String
+            menu.findItem(R.id.gray).title =
+                initialBundle.getString(EdgeDetectionHandler.CROP_BLACK_WHITE_TITLE) as String
+            menu.findItem(R.id.reset).title =
+                initialBundle.getString(EdgeDetectionHandler.CROP_RESET_TITLE) as String
 
-        if (showMenuItems) {
-            menu.findItem(R.id.action_label).isVisible = true
-            findViewById<ImageView>(R.id.crop).visibility = View.GONE
-        } else {
-            menu.findItem(R.id.action_label).isVisible = false
-            findViewById<ImageView>(R.id.crop).visibility = View.VISIBLE
+            if (showMenuItems) {
+                menu.findItem(R.id.action_label).isVisible = true
+                findViewById<ImageView>(R.id.crop).visibility = View.GONE
+            } else {
+                menu.findItem(R.id.action_label).isVisible = false
+                findViewById<ImageView>(R.id.crop).visibility = View.VISIBLE
+            }
+
+            return super.onCreateOptionsMenu(menu)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating menu: ${e.message}")
+            return false
         }
-
-        return super.onCreateOptionsMenu(menu)
     }
 
 
