@@ -48,8 +48,9 @@
             android:layout_height="wrap_content"
             android:layout_above="@id/crop"
             android:layout_marginBottom="10dp"
+            android:gravity="center"
             android:orientation="horizontal"
-            android:gravity="center">
+            android:visibility="visible">
 
             <!-- Black and White Button -->
             <ImageView
@@ -59,7 +60,7 @@
                 android:layout_margin="5dp"
                 android:background="@drawable/round_button"
                 android:padding="12dp"
-                app:srcCompat="@drawable/ic_black_white"
+                app:srcCompat="@drawable/ic_invert_colors"
                 app:tint="@android:color/white" />
 
             <!-- Rotate Button -->
@@ -81,7 +82,7 @@
                 android:layout_margin="5dp"
                 android:background="@drawable/round_button"
                 android:padding="12dp"
-                app:srcCompat="@drawable/ic_reset"
+                app:srcCompat="@drawable/ic_reset_colors"
                 app:tint="@android:color/white" />
         </LinearLayout>
 

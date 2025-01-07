@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.ImageView
 import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.R
@@ -110,7 +111,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     private fun changeMenuVisibility(showMenuItems: Boolean) {
         val buttonRow = findViewById<LinearLayout>(R.id.button_row)
-        val doneButton = findViewById<LinearLayout>(R.id.done)
+        val doneButton = findViewById<ImageView>(R.id.done)
         val cropButton = findViewById<ImageView>(R.id.crop)
 
         buttonRow.visibility = if (showMenuItems) View.VISIBLE else View.GONE
