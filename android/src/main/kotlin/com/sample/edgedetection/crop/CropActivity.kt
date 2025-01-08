@@ -54,10 +54,10 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->
             Log.e(TAG, "Black and White button clicked!")
             if (!isBlackWhiteActive) {
-                button.setColorFilter(Color.BLUE)
+                (button as ImageView).setColorFilter(Color.BLUE, android.graphics.PorterDuff.Mode.SRC_IN)
                 mPresenter.enhance() // Black and white logic
             } else {
-                button.clearColorFilter()
+                (button as ImageView).clearColorFilter()
                 mPresenter.reset() // Reset logic
             }
             isBlackWhiteActive = !isBlackWhiteActive

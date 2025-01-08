@@ -12,6 +12,7 @@ import org.opencv.core.Point
 import org.opencv.core.Size
 import kotlin.math.abs
 import kotlin.math.sqrt
+import kotlin.math.pow
 
 private const val TAG = "PaperRectangle"
 
