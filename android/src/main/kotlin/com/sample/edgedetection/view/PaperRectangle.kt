@@ -124,7 +124,9 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             // Create a rotated rectangle for the touch target
             val path = Path()
             val halfWidth = DEFAULT_TOUCH_TARGET_SIZE / 2
-            val halfLength = length / 2
+            val touchTargetLength = DEFAULT_TOUCH_TARGET_SIZE * 1.5f  // Adjust this multiplier as needed
+            val halfLength = touchTargetLength / 2
+            
             path.moveTo((-halfLength).toFloat(), (-halfWidth).toFloat())
             path.lineTo(halfLength.toFloat(), (-halfWidth).toFloat())
             path.lineTo(halfLength.toFloat(), halfWidth.toFloat())
