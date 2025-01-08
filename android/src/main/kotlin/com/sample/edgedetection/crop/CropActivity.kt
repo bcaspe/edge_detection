@@ -1,6 +1,7 @@
 package com.sample.edgedetection.crop
 
 import android.app.Activity
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -16,6 +17,7 @@ import com.sample.edgedetection.view.PaperRectangle
 class CropActivity : BaseActivity(), ICropView.Proxy {
 
     private var showMenuItems = false
+    private var isBlackWhiteActive = false
 
     private lateinit var mPresenter: CropPresenter
 
@@ -49,9 +51,16 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             changeMenuVisibility(true)
         }
 
-        findViewById<ImageView>(R.id.black_white).setOnClickListener {
+        findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->
             Log.e(TAG, "Black and White button clicked!")
-            mPresenter.enhance() // Black and white logic
+            if (!isBlackWhiteActive) {
+                button.setColorFilter(Color.BLUE)
+                mPresenter.enhance() // Black and white logic
+            } else {
+                button.clearColorFilter()
+                mPresenter.reset() // Reset logic
+            }
+            isBlackWhiteActive = !isBlackWhiteActive
         }
 
         findViewById<ImageView>(R.id.rotate).setOnClickListener {

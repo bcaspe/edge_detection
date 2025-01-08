@@ -108,16 +108,36 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             Pair(bl, tl)  // Left
         )
         sides.forEach { side ->
-            val midX = (side.first.x + side.second.x) / 2
-            val midY = (side.first.y + side.second.y) / 2
+            val (start, end) = side
 
-            val rect = RectF(
-                (midX - DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
-                (midY - DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
-                (midX + DEFAULT_TOUCH_TARGET_SIZE).toFloat(),
-                (midY + DEFAULT_TOUCH_TARGET_SIZE).toFloat()
-            )
-            canvas?.drawRect(rect, rectPaint)
+            // Calculate the angle of the side
+            val angle = Math.atan2((end.y - start.y).toDouble(), (end.x - start.x).toDouble())
+
+            // Calculate the midpoint of the side
+            val midX = (start.x + end.x) / 2
+            val midY = (start.y + end.y) / 2
+
+            // Calculate the length of the side
+            val length = Math.sqrt(((end.x - start.x).toDouble().pow(2) + (end.y - start.y).toDouble().pow(2)))
+
+            // Create a rotated rectangle for the touch target
+            val path = Path()
+            val halfWidth = DEFAULT_TOUCH_TARGET_SIZE / 2
+            val halfLength = length / 2
+            path.moveTo((-halfLength).toFloat(), (-halfWidth).toFloat())
+            path.lineTo(halfLength.toFloat(), (-halfWidth).toFloat())
+            path.lineTo(halfLength.toFloat(), halfWidth.toFloat())
+            path.lineTo((-halfLength).toFloat(), halfWidth.toFloat())
+            path.close()
+
+            // Apply rotation and translation
+            val matrix = Matrix()
+            matrix.postRotate(Math.toDegrees(angle).toFloat())
+            matrix.postTranslate(midX.toFloat(), midY.toFloat())
+            path.transform(matrix)
+
+            // Draw the rotated touch target
+            canvas?.drawPath(path, rectPaint)
         }
     }
 
