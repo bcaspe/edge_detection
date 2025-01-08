@@ -121,11 +121,9 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     private fun changeMenuVisibility(showMenuItems: Boolean) {
         this.showMenuItems = showMenuItems
         val buttonRow = findViewById<LinearLayout>(R.id.button_row)
-        val doneButton = findViewById<ImageView>(R.id.done)
         val cropButton = findViewById<ImageView>(R.id.crop)
 
         buttonRow.visibility = if (showMenuItems) View.VISIBLE else View.GONE
-        doneButton.visibility = if (showMenuItems) View.VISIBLE else View.GONE
         cropButton.visibility = if (showMenuItems) View.GONE else View.VISIBLE
     }
 
@@ -143,8 +141,11 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         if (showMenuItems) {
             Log.e(TAG, "Back button clicked! resetting")
             // If menu items are visible (indicating that the image is cropped), revert to pre-cropped state
-            mPresenter.reset() // Call the reset method in the presenter to revert changes
-            changeMenuVisibility(false) // Hide the menu items
+            if (!mPresenter.handleBackButton()) {
+                super.onBackPressed() // This will finish the activity and return to scan
+            } else {
+                changeMenuVisibility(false) // Hide the menu items
+            }
         } else {
             Log.e(TAG, "Back button clicked! going back")
             // If menu items are not visible, proceed with default back button behavior

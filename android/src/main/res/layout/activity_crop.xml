@@ -46,34 +46,55 @@
             android:id="@+id/button_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@id/crop"
-            android:layout_marginBottom="10dp"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:visibility="gone">
 
-            <!-- Black and White Button -->
+            <!-- Left group of buttons -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                
+                <!-- Black and White Button -->
+                <ImageView
+                    android:id="@+id/black_white"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_margin="5dp"
+                    android:background="@drawable/round_button"
+                    android:padding="12dp"
+                    app:srcCompat="@drawable/ic_invert_colors"
+                    app:tint="@android:color/white" />
+
+                <!-- Rotate Button -->
+                <ImageView
+                    android:id="@+id/rotate"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_margin="5dp"
+                    android:background="@drawable/round_button"
+                    android:padding="12dp"
+                    app:srcCompat="@drawable/ic_rotate"
+                    app:tint="@android:color/white" />
+            </LinearLayout>
+
+            <!-- Flexible space -->
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <!-- Done Button (right-aligned) -->
             <ImageView
-                android:id="@+id/black_white"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:id="@+id/done"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:layout_margin="5dp"
                 android:background="@drawable/round_button"
                 android:padding="12dp"
-                app:srcCompat="@drawable/ic_invert_colors"
+                app:srcCompat="@drawable/ic_done"
                 app:tint="@android:color/white" />
-
-            <!-- Rotate Button -->
-            <ImageView
-                android:id="@+id/rotate"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_margin="5dp"
-                android:background="@drawable/round_button"
-                android:padding="12dp"
-                app:srcCompat="@drawable/ic_rotate"
-                app:tint="@android:color/white" />
-
         </LinearLayout>
 
         <!-- Crop Button -->
@@ -81,27 +102,13 @@
             android:id="@+id/crop"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:layout_alignParentStart="true"
-            android:layout_marginEnd="15dp"
-            android:layout_centerVertical="true"
+            android:layout_centerInParent="true"
             android:background="@drawable/round_button"
             android:padding="12dp"
             android:visibility="visible"
             app:srcCompat="@drawable/ic_crop"
             app:tint="@android:color/white" />
 
-        <!-- Done Button -->
-        <ImageView
-            android:id="@+id/done"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:background="@drawable/round_button"
-            android:padding="12dp"
-            android:visibility="gone"
-            app:srcCompat="@drawable/ic_done"
-            app:tint="@android:color/white" />
     </RelativeLayout>
 
 </RelativeLayout>

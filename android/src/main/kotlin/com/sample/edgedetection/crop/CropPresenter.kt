@@ -25,6 +25,8 @@ class CropPresenter(
 ) {
     private val picture: Mat? = SourceManager.pic
 
+    private var isCropped = false
+
     private val corners: Corners? = SourceManager.corners
     private var croppedPicture: Mat? = null
     private var enhancedPicture: Bitmap? = null
@@ -67,7 +69,27 @@ class CropPresenter(
                 iCropView.getCroppedPaper().setImageBitmap(croppedBitmap)
                 iCropView.getPaper().visibility = View.GONE
                 iCropView.getPaperRect().visibility = View.GONE
+                isCropped = true
             }
+    }
+
+    fun handleBackButton(): Boolean {
+        if (isCropped) {
+            // Reset to uncropped state
+            isCropped = false
+            croppedBitmap = null
+            croppedPicture = null
+            enhancedPicture = null
+            rotateBitmap = null
+            
+            // Show original image and paper rectangle
+            iCropView.getPaper().visibility = View.VISIBLE
+            iCropView.getPaperRect().visibility = View.VISIBLE
+            iCropView.getCroppedPaper().setImageBitmap(null)
+            
+            return true // Handled the back press
+        }
+        return false // Not handled, should go back to scan activity
     }
 
     fun enhance() {
