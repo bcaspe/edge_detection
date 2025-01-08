@@ -68,11 +68,6 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             mPresenter.rotate() // Rotate logic
         }
 
-        findViewById<ImageView>(R.id.reset).setOnClickListener {
-            Log.e(TAG, "Reset button clicked!")
-            mPresenter.reset() // Reset logic
-        }
-
         findViewById<ImageView>(R.id.done).setOnClickListener {
             Log.e(TAG, "Saved touched!")
             mPresenter.save()
