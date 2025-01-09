@@ -19,7 +19,7 @@ import com.sample.edgedetection.view.PaperRectangle
 class CropActivity : BaseActivity(), ICropView.Proxy {
 
     private var showMenuItems = false
-    private var isBlackWhiteActive = false
+    private var isBlackWhiteActive = true
 
     private lateinit var mPresenter: CropPresenter
 
@@ -61,9 +61,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         // Show threshold controls when black/white is activated
         findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->
             if (!isBlackWhiteActive) {
-                findViewById<LinearLayout>(R.id.threshold_controls).visibility = View.VISIBLE
-                (button as ImageView).setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_IN)
-                mPresenter.enhance()
+                activateBlackWhite()
             } else {
                 findViewById<LinearLayout>(R.id.threshold_controls).visibility = View.GONE
                 (button as ImageView).clearColorFilter()
@@ -75,28 +73,21 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     override fun provideContentViewId(): Int = R.layout.activity_crop
 
+    fun activateBlackWhite() {
+        findViewById<LinearLayout>(R.id.threshold_controls).visibility = View.VISIBLE
+        findViewById<ImageView>(R.id.black_white).setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_IN)
+        mPresenter.enhance()
+    }
 
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
         mPresenter = CropPresenter(this, initialBundle)
-        
+        activateBlackWhite()
 
         findViewById<ImageView>(R.id.crop).setOnClickListener {
             Log.e(TAG, "Crop touched!")
             mPresenter.crop()
             changeMenuVisibility(true)
-        }
-
-        findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->
-            Log.e(TAG, "Black and White button clicked!")
-            if (!isBlackWhiteActive) {
-                (button as ImageView).setColorFilter(Color.BLUE, android.graphics.PorterDuff.Mode.SRC_IN)
-                mPresenter.enhance() // Black and white logic
-            } else {
-                (button as ImageView).clearColorFilter()
-                mPresenter.reset() // Reset logic
-            }
-            isBlackWhiteActive = !isBlackWhiteActive
         }
 
         findViewById<ImageView>(R.id.rotate).setOnClickListener {
