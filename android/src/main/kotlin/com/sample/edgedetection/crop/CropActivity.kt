@@ -82,12 +82,12 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
         mPresenter = CropPresenter(this, initialBundle)
-        activateBlackWhite()
 
         findViewById<ImageView>(R.id.crop).setOnClickListener {
             Log.e(TAG, "Crop touched!")
             mPresenter.crop()
             changeMenuVisibility(true)
+            activateBlackWhite()
         }
 
         findViewById<ImageView>(R.id.rotate).setOnClickListener {
