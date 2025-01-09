@@ -84,6 +84,11 @@ class CropPresenter(
             iCropView.getPaperRect().visibility = View.VISIBLE
             iCropView.getCroppedPaper().setImageBitmap(null)
             
+            // Reset the paper rectangle to original corners
+            val paperWidth = iCropView.getPaper().width
+            val paperHeight = iCropView.getPaper().height
+            iCropView.getPaperRect().onCorners2Crop(corners, picture?.size(), paperWidth, paperHeight)
+        
             return true
         }
         return false
@@ -95,22 +100,9 @@ class CropPresenter(
             return
         }
 
-        val imgToEnhance: Bitmap? = when {
-            enhancedPicture != null -> enhancedPicture
-            rotateBitmap != null -> rotateBitmap
-            else -> croppedBitmap
-        }
-        
-        Log.d(TAG, "Enhancing with threshold: $threshold")
-        Log.d(TAG, "Using image source: ${when {
-            imgToEnhance == enhancedPicture -> "enhanced picture"
-            imgToEnhance == rotateBitmap -> "rotated bitmap"
-            else -> "cropped bitmap"
-        }}")
-
         Observable.create<Bitmap> { emitter ->
             try {
-                val enhanced = enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble())
+                val enhanced = enhancePicture(croppedBitmap, threshold * 2 + 1, threshold.toDouble())
                 emitter.onNext(enhanced)
                 emitter.onComplete()
             } catch (e: Exception) {
@@ -122,19 +114,10 @@ class CropPresenter(
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(
             { enhancedBitmap ->
-                Log.d(TAG, "Enhancement complete, updating UI")
                 currentThreshold = threshold
                 enhancedPicture = enhancedBitmap
                 rotateBitmap = enhancedPicture
-                
-                // Force UI update
-                iCropView.getCroppedPaper().apply {
-                    setImageBitmap(null)  // Clear current bitmap
-                    post {
-                        setImageBitmap(enhancedBitmap)  // Set new bitmap
-                        invalidate()  // Force redraw
-                    }
-                }
+                iCropView.getCroppedPaper().setImageBitmap(enhancedBitmap)
             },
             { error ->
                 Log.e(TAG, "Error in enhance subscription", error)

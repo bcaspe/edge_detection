@@ -43,6 +43,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             if (currentValue < 30) {  // Max threshold
                 val newValue = currentValue + 1
                 findViewById<TextView>(R.id.threshold_value).text = newValue.toString()
+                mPresenter.reset()
                 mPresenter.enhance(newValue)
             }
         }
@@ -52,6 +53,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             if (currentValue > 1) {  // Min threshold
                 val newValue = currentValue - 1
                 findViewById<TextView>(R.id.threshold_value).text = newValue.toString()
+                mPresenter.reset()
                 mPresenter.enhance(newValue)
             }
         }
