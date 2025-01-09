@@ -90,37 +90,57 @@ class CropPresenter(
     }
 
     fun enhance(threshold: Int = currentThreshold) {
-    if (croppedBitmap == null) {
-        Log.i(TAG, "picture null?")
-        return
-    }
+        if (croppedBitmap == null) {
+            Log.i(TAG, "picture null?")
+            return
+        }
 
-    val imgToEnhance: Bitmap? = when {
-        enhancedPicture != null -> enhancedPicture
-        rotateBitmap != null -> rotateBitmap
-        else -> croppedBitmap
-    }
-    
-    Log.d(TAG, "Enhancing with threshold: $threshold")
-    Log.d(TAG, "Using image source: ${when {
-        imgToEnhance == enhancedPicture -> "enhanced picture"
-        imgToEnhance == rotateBitmap -> "rotated bitmap"
-        else -> "cropped bitmap"
-    }}")
+        val imgToEnhance: Bitmap? = when {
+            enhancedPicture != null -> enhancedPicture
+            rotateBitmap != null -> rotateBitmap
+            else -> croppedBitmap
+        }
+        
+        Log.d(TAG, "Enhancing with threshold: $threshold")
+        Log.d(TAG, "Using image source: ${when {
+            imgToEnhance == enhancedPicture -> "enhanced picture"
+            imgToEnhance == rotateBitmap -> "rotated bitmap"
+            else -> "cropped bitmap"
+        }}")
 
-    Observable.create<Bitmap> {
-        it.onNext(enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble()))
-    }
+        Observable.create<Bitmap> { emitter ->
+            try {
+                val enhanced = enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble())
+                emitter.onNext(enhanced)
+                emitter.onComplete()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error enhancing image", e)
+                emitter.onError(e)
+            }
+        }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
-        .subscribe { pc ->
-            Log.d(TAG, "Enhancement complete, updating UI")
-            currentThreshold = threshold
-            enhancedPicture = pc
-            rotateBitmap = enhancedPicture
-            iCropView.getCroppedPaper().setImageBitmap(pc)
-        }
-}
+        .subscribe(
+            { enhancedBitmap ->
+                Log.d(TAG, "Enhancement complete, updating UI")
+                currentThreshold = threshold
+                enhancedPicture = enhancedBitmap
+                rotateBitmap = enhancedPicture
+                
+                // Force UI update
+                iCropView.getCroppedPaper().apply {
+                    setImageBitmap(null)  // Clear current bitmap
+                    post {
+                        setImageBitmap(enhancedBitmap)  // Set new bitmap
+                        invalidate()  // Force redraw
+                    }
+                }
+            },
+            { error ->
+                Log.e(TAG, "Error in enhance subscription", error)
+            }
+        )
+    }
 
     fun reset() {
         if (croppedBitmap == null) {
