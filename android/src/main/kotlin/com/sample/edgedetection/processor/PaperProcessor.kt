@@ -55,7 +55,7 @@ fun cropPicture(picture: Mat, pts: List<Point>): Mat {
     return croppedPic
 }
 
-fun enhancePicture(src: Bitmap?): Bitmap {
+fun enhancePicture(src: Bitmap?, blockSize: Int = 15, constant: Double = 15.0): Bitmap {
     val srcMat = Mat()
     Utils.bitmapToMat(src, srcMat)
     Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_RGBA2GRAY)
@@ -65,8 +65,8 @@ fun enhancePicture(src: Bitmap?): Bitmap {
         255.0,
         Imgproc.ADAPTIVE_THRESH_MEAN_C,
         Imgproc.THRESH_BINARY,
-        15,
-        15.0
+        blockSize,     // Must be odd number
+        constant 
     )
     val result = Bitmap.createBitmap(src?.width ?: 1080, src?.height ?: 1920, Bitmap.Config.RGB_565)
     Utils.matToBitmap(srcMat, result, true)

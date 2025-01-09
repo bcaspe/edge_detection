@@ -33,6 +33,7 @@ class CropPresenter(
     private var croppedBitmap: Bitmap? = null
     private var rotateBitmap: Bitmap? = null
     private var rotateBitmapDegree: Int = -90
+    private var currentThreshold = 15
 
     fun onViewsReady(paperWidth: Int, paperHeight: Int) {
         iCropView.getPaperRect().onCorners2Crop(corners, picture?.size(), paperWidth, paperHeight)
@@ -92,7 +93,7 @@ class CropPresenter(
         return false // Not handled, should go back to scan activity
     }
 
-    fun enhance() {
+    fun enhance(threshold: Int = currentThreshold) {
         if (croppedBitmap == null) {
             Log.i(TAG, "picture null?")
             return
@@ -111,12 +112,12 @@ class CropPresenter(
         }
 
         Observable.create<Bitmap> {
-            it.onNext(enhancePicture(imgToEnhance))
+            it.onNext(enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble()))
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { pc ->
-
+                currentThreshold = threshold
                 enhancedPicture = pc
                 rotateBitmap = enhancedPicture
 

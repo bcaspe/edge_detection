@@ -35,6 +35,33 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
         }
         changeMenuVisibility(false)
+        findViewById<SeekBar>(R.id.threshold_slider).setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    findViewById<TextView>(R.id.threshold_value).text = "Threshold: $progress"
+                    if (fromUser) {
+                        mPresenter.enhance(progress)
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            }
+        )
+
+        // Show threshold controls when black/white is activated
+        findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->
+            if (!isBlackWhiteActive) {
+                findViewById<LinearLayout>(R.id.threshold_controls).visibility = View.VISIBLE
+                (button as ImageView).setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_IN)
+                mPresenter.enhance()
+            } else {
+                findViewById<LinearLayout>(R.id.threshold_controls).visibility = View.GONE
+                (button as ImageView).clearColorFilter()
+                mPresenter.reset()
+            }
+            isBlackWhiteActive = !isBlackWhiteActive
+        }
     }
 
     override fun provideContentViewId(): Int = R.layout.activity_crop

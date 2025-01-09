@@ -55,6 +55,30 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
+
+                <!-- Add this inside the button_row LinearLayout, perhaps above the buttons -->
+<LinearLayout
+    android:id="@+id/threshold_controls"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:visibility="gone">
+    
+    <TextView
+        android:id="@+id/threshold_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:text="Threshold: 15"/>
+        
+    <SeekBar
+        android:id="@+id/threshold_slider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="30"
+        android:progress="15"
+        android:layout_marginHorizontal="16dp"/>
+</LinearLayout>
                 
                 <!-- Black and White Button -->
                 <ImageView
