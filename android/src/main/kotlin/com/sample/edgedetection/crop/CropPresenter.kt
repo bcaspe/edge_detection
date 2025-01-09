@@ -24,9 +24,7 @@ class CropPresenter(
     private val initialBundle: Bundle
 ) {
     private val picture: Mat? = SourceManager.pic
-
     private var isCropped = false
-
     private val corners: Corners? = SourceManager.corners
     private var croppedPicture: Mat? = null
     private var enhancedPicture: Bitmap? = null
@@ -38,8 +36,9 @@ class CropPresenter(
     fun onViewsReady(paperWidth: Int, paperHeight: Int) {
         iCropView.getPaperRect().onCorners2Crop(corners, picture?.size(), paperWidth, paperHeight)
         val bitmap = Bitmap.createBitmap(
-            picture?.width() ?: 1080, picture?.height()
-                ?: 1920, Bitmap.Config.ARGB_8888
+            picture?.width() ?: 1080,
+            picture?.height() ?: 1920,
+            Bitmap.Config.ARGB_8888
         )
         Utils.matToBitmap(picture, bitmap, true)
         iCropView.getPaper().setImageBitmap(bitmap)
@@ -64,8 +63,7 @@ class CropPresenter(
             .subscribe { pc ->
                 Log.i(TAG, "cropped picture: $pc")
                 croppedPicture = pc
-                croppedBitmap =
-                    Bitmap.createBitmap(pc.width(), pc.height(), Bitmap.Config.ARGB_8888)
+                croppedBitmap = Bitmap.createBitmap(pc.width(), pc.height(), Bitmap.Config.ARGB_8888)
                 Utils.matToBitmap(pc, croppedBitmap)
                 iCropView.getCroppedPaper().setImageBitmap(croppedBitmap)
                 iCropView.getPaper().visibility = View.GONE
@@ -76,21 +74,19 @@ class CropPresenter(
 
     fun handleBackButton(): Boolean {
         if (isCropped) {
-            // Reset to uncropped state
             isCropped = false
             croppedBitmap = null
             croppedPicture = null
             enhancedPicture = null
             rotateBitmap = null
             
-            // Show original image and paper rectangle
             iCropView.getPaper().visibility = View.VISIBLE
             iCropView.getPaperRect().visibility = View.VISIBLE
             iCropView.getCroppedPaper().setImageBitmap(null)
             
-            return true // Handled the back press
+            return true
         }
-        return false // Not handled, should go back to scan activity
+        return false
     }
 
     fun enhance(threshold: Int = currentThreshold) {
@@ -100,15 +96,9 @@ class CropPresenter(
         }
 
         val imgToEnhance: Bitmap? = when {
-            enhancedPicture != null -> {
-                enhancedPicture
-            }
-            rotateBitmap != null -> {
-                rotateBitmap
-            }
-            else -> {
-                croppedBitmap
-            }
+            enhancedPicture != null -> enhancedPicture
+            rotateBitmap != null -> rotateBitmap
+            else -> croppedBitmap
         }
 
         Observable.create<Bitmap> {
@@ -120,7 +110,6 @@ class CropPresenter(
                 currentThreshold = threshold
                 enhancedPicture = pc
                 rotateBitmap = enhancedPicture
-
                 iCropView.getCroppedPaper().setImageBitmap(pc)
             }
     }
@@ -174,9 +163,7 @@ class CropPresenter(
             rotatePic.recycle()
             Log.i(TAG, "RotateBitmap Saved")
         } else {
-            // first save enhanced picture, if picture is not enhanced, save cropped picture, otherwise nothing to do
             val pic = enhancedPicture
-
             if (null != pic) {
                 val outStream = FileOutputStream(file)
                 pic.compress(Bitmap.CompressFormat.JPEG, 100, outStream)
@@ -198,23 +185,15 @@ class CropPresenter(
         }
     }
 
-    // Extension function to rotate a bitmap
     private fun Bitmap.rotateInt(degree: Int): Bitmap {
-        // Initialize a new matrix
         val matrix = Matrix()
-
-        // Rotate the bitmap
         matrix.postRotate(degree.toFloat())
-
-        // Resize the bitmap
         val scaledBitmap = Bitmap.createScaledBitmap(
             this,
             width,
             height,
             true
         )
-
-        // Create and return the rotated bitmap
         return Bitmap.createBitmap(
             scaledBitmap,
             0,
