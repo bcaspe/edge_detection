@@ -10,7 +10,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ImageView
-import android.widget.SeekBar
 import android.widget.TextView
 import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.R
@@ -38,19 +37,24 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
         }
         changeMenuVisibility(false)
-        findViewById<SeekBar>(R.id.threshold_slider).setOnSeekBarChangeListener(
-            object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    findViewById<TextView>(R.id.threshold_value).text = "Threshold: $progress"
-                    if (fromUser) {
-                        mPresenter.enhance(progress)
-                    }
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        // Replace the SeekBar setup with this
+        findViewById<ImageView>(R.id.threshold_up).setOnClickListener {
+            val currentValue = findViewById<TextView>(R.id.threshold_value).text.toString().toInt()
+            if (currentValue < 30) {  // Max threshold
+                val newValue = currentValue + 1
+                findViewById<TextView>(R.id.threshold_value).text = newValue.toString()
+                mPresenter.enhance(newValue)
             }
-        )
+        }
+
+        findViewById<ImageView>(R.id.threshold_down).setOnClickListener {
+            val currentValue = findViewById<TextView>(R.id.threshold_value).text.toString().toInt()
+            if (currentValue > 1) {  // Min threshold
+                val newValue = currentValue - 1
+                findViewById<TextView>(R.id.threshold_value).text = newValue.toString()
+                mPresenter.enhance(newValue)
+            }
+        }
 
         // Show threshold controls when black/white is activated
         findViewById<ImageView>(R.id.black_white).setOnClickListener { button ->

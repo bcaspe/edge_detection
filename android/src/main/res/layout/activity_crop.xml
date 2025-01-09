@@ -64,20 +64,34 @@
     android:orientation="vertical"
     android:visibility="gone">
     
+    <ImageView
+        android:id="@+id/threshold_down"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_margin="5dp"
+        android:background="@drawable/round_button"
+        android:padding="8dp"
+        app:srcCompat="@drawable/ic_remove"
+        app:tint="@android:color/white" />
+
     <TextView
         android:id="@+id/threshold_value"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@android:color/white"
-        android:text="Threshold: 15"/>
-        
-    <SeekBar
-        android:id="@+id/threshold_slider"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:max="30"
-        android:progress="15"
-        android:layout_marginHorizontal="16dp"/>
+        android:layout_marginHorizontal="8dp"
+        android:text="15"/>
+
+    <ImageView
+        android:id="@+id/threshold_up"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_margin="5dp"
+        android:background="@drawable/round_button"
+        android:padding="8dp"
+        app:srcCompat="@drawable/ic_add"
+        app:tint="@android:color/white" />
+
 </LinearLayout>
                 
                 <!-- Black and White Button -->

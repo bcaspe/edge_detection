@@ -90,29 +90,37 @@ class CropPresenter(
     }
 
     fun enhance(threshold: Int = currentThreshold) {
-        if (croppedBitmap == null) {
-            Log.i(TAG, "picture null?")
-            return
-        }
-
-        val imgToEnhance: Bitmap? = when {
-            enhancedPicture != null -> enhancedPicture
-            rotateBitmap != null -> rotateBitmap
-            else -> croppedBitmap
-        }
-
-        Observable.create<Bitmap> {
-            it.onNext(enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble()))
-        }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { pc ->
-                currentThreshold = threshold
-                enhancedPicture = pc
-                rotateBitmap = enhancedPicture
-                iCropView.getCroppedPaper().setImageBitmap(pc)
-            }
+    if (croppedBitmap == null) {
+        Log.i(TAG, "picture null?")
+        return
     }
+
+    val imgToEnhance: Bitmap? = when {
+        enhancedPicture != null -> enhancedPicture
+        rotateBitmap != null -> rotateBitmap
+        else -> croppedBitmap
+    }
+    
+    Log.d(TAG, "Enhancing with threshold: $threshold")
+    Log.d(TAG, "Using image source: ${when {
+        imgToEnhance == enhancedPicture -> "enhanced picture"
+        imgToEnhance == rotateBitmap -> "rotated bitmap"
+        else -> "cropped bitmap"
+    }}")
+
+    Observable.create<Bitmap> {
+        it.onNext(enhancePicture(imgToEnhance, threshold * 2 + 1, threshold.toDouble()))
+    }
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe { pc ->
+            Log.d(TAG, "Enhancement complete, updating UI")
+            currentThreshold = threshold
+            enhancedPicture = pc
+            rotateBitmap = enhancedPicture
+            iCropView.getCroppedPaper().setImageBitmap(pc)
+        }
+}
 
     fun reset() {
         if (croppedBitmap == null) {

@@ -56,9 +56,19 @@ fun cropPicture(picture: Mat, pts: List<Point>): Mat {
 }
 
 fun enhancePicture(src: Bitmap?, blockSize: Int = 15, constant: Double = 15.0): Bitmap {
+    Log.d(TAG, "Enhancing picture with blockSize: $blockSize, constant: $constant")
+    if (src == null) {
+        Log.e(TAG, "Source bitmap is null!")
+        throw IllegalArgumentException("Source bitmap cannot be null")
+    }
+    
     val srcMat = Mat()
     Utils.bitmapToMat(src, srcMat)
+    Log.d(TAG, "Converted bitmap to Mat: ${srcMat.width()}x${srcMat.height()}")
+    
     Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_RGBA2GRAY)
+    Log.d(TAG, "Converted to grayscale")
+    
     Imgproc.adaptiveThreshold(
         srcMat,
         srcMat,
@@ -68,8 +78,12 @@ fun enhancePicture(src: Bitmap?, blockSize: Int = 15, constant: Double = 15.0): 
         blockSize,     // Must be odd number
         constant 
     )
-    val result = Bitmap.createBitmap(src?.width ?: 1080, src?.height ?: 1920, Bitmap.Config.RGB_565)
+    Log.d(TAG, "Applied adaptive threshold")
+    
+    val result = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.RGB_565)
     Utils.matToBitmap(srcMat, result, true)
+    Log.d(TAG, "Converted back to bitmap")
+    
     srcMat.release()
     return result
 }
