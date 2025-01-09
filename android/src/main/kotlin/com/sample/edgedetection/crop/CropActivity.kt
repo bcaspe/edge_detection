@@ -2,6 +2,7 @@ package com.sample.edgedetection.crop
 
 import android.app.Activity
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -9,6 +10,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ImageView
+import android.widget.SeekBar
+import android.widget.TextView
 import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.R
 import com.sample.edgedetection.base.BaseActivity
