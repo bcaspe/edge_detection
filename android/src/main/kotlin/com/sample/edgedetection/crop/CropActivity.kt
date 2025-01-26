@@ -26,8 +26,8 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     private lateinit var initialBundle: Bundle
 
     override fun prepare() {
-        this.initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
-        this.title = initialBundle.getString(EdgeDetectionHandler.CROP_TITLE)
+        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        this.title = initialBundle.getString(EdgeDetectionHandler.CROP_TITLE) ?: "Crop script"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
