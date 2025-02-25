@@ -34,6 +34,8 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     override fun initPresenter() {
         val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        Log.d("EdgeDetection", "ScanActivity bundle: ${initialBundle.keySet().joinToString()}")
+    
         mPresenter = ScanPresenter(this, this, initialBundle)
     }
 
