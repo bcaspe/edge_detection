@@ -251,6 +251,8 @@ class ScanPresenter constructor(
         SourceManager.corners = processPicture(resizedMat)
         Imgproc.cvtColor(resizedMat, resizedMat, Imgproc.COLOR_RGB2BGRA)
         SourceManager.pic = resizedMat
+        Log.d("EdgeDetection", "ScanPresenter bundle before CropActivity: ${this.initialBundle.keySet().joinToString()}")
+    
         val cropIntent = Intent(context, CropActivity::class.java)
         cropIntent.putExtra(EdgeDetectionHandler.INITIAL_BUNDLE, this.initialBundle)
         (context as Activity).startActivityForResult(cropIntent, REQUEST_CODE)
