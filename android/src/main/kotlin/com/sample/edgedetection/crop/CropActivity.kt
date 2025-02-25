@@ -80,7 +80,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     }
 
     override fun initPresenter() {
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
+        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         mPresenter = CropPresenter(this, initialBundle)
 
         findViewById<ImageView>(R.id.crop).setOnClickListener {
