@@ -231,15 +231,18 @@ class ScanPresenter constructor(
             copied = sourceMatrix
         }
         val copiedSize: Size = copied.size()
-        return if (copiedSize.width > ScanConstants.MAX_SIZE.width || copiedSize.height > ScanConstants.MAX_SIZE.height) {
-            var useRatio = 0.0
-            val widthRatio: Double = ScanConstants.MAX_SIZE.width / copiedSize.width
-            val heightRatio: Double = ScanConstants.MAX_SIZE.height / copiedSize.height
-            useRatio = if(widthRatio > heightRatio)  widthRatio else heightRatio
-            val resizedImage = Mat()
-            val newSize = Size(copiedSize.width * useRatio, copiedSize.height * useRatio)
-            Imgproc.resize(copied, resizedImage, newSize)
-            resizedImage
+        // Get dynamic max size based on the original image dimensions
+    val dynamicMaxSize = ScanConstants.getMaxSizeForImage(sourceSize)
+    
+        return if (copiedSize.width > dynamicMaxSize.width || copiedSize.height > dynamicMaxSize.height) {
+        var useRatio = 0.0
+        val widthRatio: Double = dynamicMaxSize.width / copiedSize.width
+        val heightRatio: Double = dynamicMaxSize.height / copiedSize.height
+        useRatio = if(widthRatio > heightRatio) widthRatio else heightRatio
+        val resizedImage = Mat()
+        val newSize = Size(copiedSize.width * useRatio, copiedSize.height * useRatio)
+        Imgproc.resize(copied, resizedImage, newSize)
+        resizedImage
         } else {
             copied
         }
