@@ -33,11 +33,15 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
     override fun provideContentViewId(): Int = R.layout.activity_scan
 
     override fun initPresenter() {
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
+        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        Log.d("EdgeDetection", "ScanActivity bundle: ${initialBundle.keySet().joinToString()}")
+    
         mPresenter = ScanPresenter(this, this, initialBundle)
     }
 
     override fun prepare() {
+        
+        
         if (!OpenCVLoader.initDebug()) {
             Log.i(TAG, "loading opencv error, exit")
             finish()
@@ -45,6 +49,8 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
         else {
             Log.i("OpenCV", "OpenCV loaded Successfully!");
         }
+
+        
 
         findViewById<View>(R.id.shut).setOnClickListener {
             if (mPresenter.canShut) {
@@ -62,8 +68,10 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             mPresenter.toggleFlash()
         }
 
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) as Bundle
-
+        // Also update this part to safely handle the bundle
+        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE)
+            ?: Bundle()
+            
         if(!initialBundle.containsKey(EdgeDetectionHandler.FROM_GALLERY)){
             this.title = initialBundle.getString(EdgeDetectionHandler.SCAN_TITLE, "") as String
         }
