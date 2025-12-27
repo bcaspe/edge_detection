@@ -72,7 +72,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private var activeSide = -1
     var cropMode = false
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         // Draw quadrilateral
