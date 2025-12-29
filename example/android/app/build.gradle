@@ -19,6 +19,14 @@ android {
     compileSdkVersion 36
     ndkVersion "28.2.13676358"
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+    }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
@@ -45,6 +53,13 @@ android {
         }
     }
     namespace 'com.sample.edgedetectionexample'
+
+    // Ensure proper alignment for all native libraries including libflutter.so
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 flutter {
