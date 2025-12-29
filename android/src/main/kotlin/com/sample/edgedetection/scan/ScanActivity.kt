@@ -22,6 +22,7 @@ import org.opencv.android.OpenCVLoader
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
 import org.opencv.core.Size
 import org.opencv.imgcodecs.Imgcodecs
 import java.io.*
@@ -201,9 +202,15 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             }
 
             val inputData: ByteArray? = getBytes(contentResolver.openInputStream(imageUri)!!)
-            val mat = Mat(Size(imageWidth, imageHeight), CvType.CV_8U)
-            mat.put(0, 0, inputData)
+            if (inputData == null || inputData.isEmpty()) {
+                throw Exception("Failed to read image data: inputData is null or empty")
+            }
+            val mat = MatOfByte(*inputData)
             val pic = Imgcodecs.imdecode(mat, Imgcodecs.IMREAD_UNCHANGED)
+            if (pic.empty()) {
+                mat.release()
+                throw Exception("Failed to decode image: decoded image is empty")
+            }
             if (rotation > -1) Core.rotate(pic, pic, rotation)
             mat.release()
 

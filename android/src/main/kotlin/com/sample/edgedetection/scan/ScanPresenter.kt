@@ -33,6 +33,7 @@ import org.opencv.core.Core
 import org.opencv.core.Core.ROTATE_90_CLOCKWISE
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
 import org.opencv.core.Size
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
@@ -283,16 +284,21 @@ class ScanPresenter constructor(
         Observable.just(p0)
             .subscribeOn(proxySchedule)
             .subscribe {
+                if (p0 == null || p0.isEmpty()) {
+                    Log.e(TAG, "Picture data is null or empty")
+                    busy = false
+                    return@subscribe
+                }
                 val pictureSize = p1?.parameters?.pictureSize
                 Log.i(TAG, "picture size: " + pictureSize.toString())
-                val mat = Mat(
-                    Size(
-                        pictureSize?.width?.toDouble() ?: 1920.toDouble(),
-                        pictureSize?.height?.toDouble() ?: 1080.toDouble()
-                    ), CvType.CV_8U
-                )
-                mat.put(0, 0, p0)
+                val mat = MatOfByte(*p0)
                 val pic = Imgcodecs.imdecode(mat, Imgcodecs.IMREAD_UNCHANGED)
+                if (pic.empty()) {
+                    Log.e(TAG, "Failed to decode image: decoded image is empty")
+                    mat.release()
+                    busy = false
+                    return@subscribe
+                }
                 Core.rotate(pic, pic, Core.ROTATE_90_CLOCKWISE)
                 mat.release()
                 detectEdge(pic)
