@@ -48,7 +48,8 @@ import android.util.Size as SizeB
 class ScanPresenter constructor(
     private val context: Context,
     private val iView: IScanView.Proxy,
-    private val initialBundle: Bundle
+    private val initialBundle: Bundle,
+    private val nextSavePathProvider: () -> String
 ) :
     SurfaceHolder.Callback, Camera.PictureCallback, Camera.PreviewCallback {
     private val TAG: String = "ScanPresenter"
@@ -256,7 +257,8 @@ class ScanPresenter constructor(
         Imgproc.cvtColor(resizedMat, resizedMat, Imgproc.COLOR_RGB2BGRA)
         SourceManager.pic = resizedMat
         Log.d("EdgeDetection", "ScanPresenter bundle before CropActivity: ${this.initialBundle.keySet().joinToString()}")
-    
+
+        initialBundle.putString(EdgeDetectionHandler.SAVE_TO, nextSavePathProvider())
         val cropIntent = Intent(context, CropActivity::class.java)
         cropIntent.putExtra(EdgeDetectionHandler.INITIAL_BUNDLE, this.initialBundle)
         (context as Activity).startActivityForResult(cropIntent, REQUEST_CODE)

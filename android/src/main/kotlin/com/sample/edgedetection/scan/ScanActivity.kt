@@ -1,14 +1,20 @@
 package com.sample.edgedetection.scan
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.widget.Button
+import android.widget.HorizontalScrollView
+import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.exifinterface.media.ExifInterface
@@ -30,19 +36,23 @@ import java.io.*
 class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     private lateinit var mPresenter: ScanPresenter
+    private lateinit var initialBundle: Bundle
+    private var fromGalleryMode: Boolean = false
+    private val capturedPaths = arrayListOf<String>()
 
     override fun provideContentViewId(): Int = R.layout.activity_scan
 
     override fun initPresenter() {
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         Log.d("EdgeDetection", "ScanActivity bundle: ${initialBundle.keySet().joinToString()}")
-    
-        mPresenter = ScanPresenter(this, this, initialBundle)
+        fromGalleryMode = initialBundle.getBoolean(EdgeDetectionHandler.FROM_GALLERY, false)
+
+        mPresenter = ScanPresenter(this, this, initialBundle) {
+            createNextSavePath()
+        }
     }
 
     override fun prepare() {
-        
-        
         if (!OpenCVLoader.initDebug()) {
             Log.i(TAG, "loading opencv error, exit")
             finish()
@@ -69,11 +79,7 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             mPresenter.toggleFlash()
         }
 
-        // Also update this part to safely handle the bundle
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE)
-            ?: Bundle()
-            
-        if(!initialBundle.containsKey(EdgeDetectionHandler.FROM_GALLERY)){
+        if(!fromGalleryMode){
             this.title = initialBundle.getString(EdgeDetectionHandler.SCAN_TITLE, "") as String
         }
 
@@ -86,8 +92,12 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             pickupFromGallery()
         }
 
-        if (initialBundle.containsKey(EdgeDetectionHandler.FROM_GALLERY) && initialBundle.getBoolean(EdgeDetectionHandler.FROM_GALLERY,false))
-        {
+        findViewById<Button>(R.id.finish_session).setOnClickListener {
+            finishWithCapturedPaths()
+        }
+        updateCapturedPreviewUi()
+
+        if (fromGalleryMode) {
             pickupFromGallery()
         }
     }
@@ -129,11 +139,24 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
         if (requestCode == REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
-                setResult(Activity.RESULT_OK)
-                finish()
+                val savedPath = data?.getStringExtra(EdgeDetectionHandler.SAVE_TO)
+                    ?: initialBundle.getString(EdgeDetectionHandler.SAVE_TO)
+
+                if (!savedPath.isNullOrEmpty()) {
+                    capturedPaths.add(savedPath)
+                    updateCapturedPreviewUi()
+                }
+
+                if (fromGalleryMode) {
+                    finishWithCapturedPaths()
+                } else {
+                    mPresenter.start()
+                }
             } else {
-                if (intent.hasExtra(EdgeDetectionHandler.FROM_GALLERY) && intent.getBooleanExtra(EdgeDetectionHandler.FROM_GALLERY, false))
+                if (fromGalleryMode && capturedPaths.isEmpty())
                     finish()
+                else
+                    mPresenter.start()
             }
         }
 
@@ -144,10 +167,14 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
                     onImageSelected(uri)
                 }
             }else if(resultCode == Activity.RESULT_CANCELED){
-                mPresenter.start()
+                if (fromGalleryMode && capturedPaths.isEmpty()) {
+                    finish()
+                } else {
+                    mPresenter.start()
+                }
             }
             else {
-                if (intent.hasExtra(EdgeDetectionHandler.FROM_GALLERY) && intent.getBooleanExtra(EdgeDetectionHandler.FROM_GALLERY,false))
+                if (fromGalleryMode && capturedPaths.isEmpty())
                     finish()
             }
         }
@@ -234,5 +261,83 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             byteBuffer.write(buffer, 0, len)
         }
         return byteBuffer.toByteArray()
+    }
+
+    private fun createNextSavePath(): String {
+        val basePath = initialBundle.getString(EdgeDetectionHandler.SAVE_TO).orEmpty()
+        if (basePath.isEmpty()) {
+            return basePath
+        }
+
+        if (capturedPaths.isEmpty()) {
+            return basePath
+        }
+
+        val file = File(basePath)
+        val parent = file.parent.orEmpty()
+        val fileName = file.name
+        val dotIndex = fileName.lastIndexOf('.')
+        val baseName = if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName
+        val extension = if (dotIndex > 0) fileName.substring(dotIndex) else ""
+        return File(parent, "${baseName}_${capturedPaths.size + 1}$extension").absolutePath
+    }
+
+    private fun updateCapturedPreviewUi() {
+        val thumbsContainer = findViewById<LinearLayout>(R.id.thumbnail_container)
+        val finishButton = findViewById<Button>(R.id.finish_session)
+        val thumbsScroll = findViewById<HorizontalScrollView>(R.id.thumbnail_scroll)
+
+        thumbsContainer.removeAllViews()
+        if (capturedPaths.isEmpty()) {
+            thumbsScroll.visibility = View.GONE
+            finishButton.visibility = View.GONE
+            return
+        }
+
+        thumbsScroll.visibility = View.VISIBLE
+        finishButton.visibility = View.VISIBLE
+
+        capturedPaths.forEach { path ->
+            val thumb = ImageView(this)
+            val size = resources.displayMetrics.density.times(56).toInt()
+            val margins = resources.displayMetrics.density.times(4).toInt()
+            val params = LinearLayout.LayoutParams(size, size).apply {
+                setMargins(margins, margins, margins, margins)
+            }
+            thumb.layoutParams = params
+            thumb.scaleType = ImageView.ScaleType.CENTER_CROP
+            thumb.background = getDrawable(R.drawable.round_button)
+            thumb.clipToOutline = true
+            thumb.setPadding(2, 2, 2, 2)
+
+            val bitmap = BitmapFactory.decodeFile(path)
+            thumb.setImageBitmap(bitmap)
+            thumb.setOnClickListener {
+                showPreviewDialog(path)
+            }
+            thumbsContainer.addView(thumb)
+        }
+    }
+
+    private fun showPreviewDialog(path: String) {
+        val preview = ImageView(this).apply {
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageBitmap(BitmapFactory.decodeFile(path))
+            setPadding(24, 24, 24, 24)
+        }
+
+        AlertDialog.Builder(this)
+            .setView(preview)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun finishWithCapturedPaths() {
+        val output = Intent().apply {
+            putStringArrayListExtra(EdgeDetectionHandler.RESULT_PATHS, capturedPaths)
+        }
+        setResult(Activity.RESULT_OK, output)
+        finish()
     }
 }

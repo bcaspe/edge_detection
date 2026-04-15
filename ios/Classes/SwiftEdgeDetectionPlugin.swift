@@ -20,7 +20,7 @@ public class SwiftEdgeDetectionPlugin: NSObject, FlutterPlugin, UIApplicationDel
         {
             if let viewController = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
                 let destinationViewController = HomeViewController()
-                destinationViewController.setParams(saveTo: saveTo, canUseGallery: canUseGallery)
+                destinationViewController.setParams(saveTo: saveTo, canUseGallery: canUseGallery, startFromGallery: false)
                 destinationViewController._result = result
                 viewController.present(destinationViewController,animated: true,completion: nil);
             }
@@ -29,9 +29,9 @@ public class SwiftEdgeDetectionPlugin: NSObject, FlutterPlugin, UIApplicationDel
         {
             if let viewController = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
                 let destinationViewController = HomeViewController()
-                destinationViewController.setParams(saveTo: saveTo, canUseGallery: canUseGallery)
+                destinationViewController.setParams(saveTo: saveTo, canUseGallery: canUseGallery, startFromGallery: true)
                 destinationViewController._result = result
-                destinationViewController.selectPhoto();
+                viewController.present(destinationViewController,animated: true,completion: nil);
             }
         }
     }

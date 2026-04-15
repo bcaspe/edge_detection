@@ -1,6 +1,7 @@
 package com.sample.edgedetection.crop
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
@@ -26,7 +27,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     private lateinit var initialBundle: Bundle
 
     override fun prepare() {
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         this.title = initialBundle.getString(EdgeDetectionHandler.CROP_TITLE) ?: "Crop script"
     }
 
@@ -80,7 +81,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     }
 
     override fun initPresenter() {
-        val initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         mPresenter = CropPresenter(this, initialBundle)
 
         findViewById<ImageView>(R.id.crop).setOnClickListener {
@@ -94,11 +95,21 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             Log.e(TAG, "Rotate button clicked!")
             mPresenter.rotate() // Rotate logic
         }
+        findViewById<ImageView>(R.id.rotate_pre).setOnClickListener {
+            Log.e(TAG, "Rotate (pre-crop) button clicked!")
+            mPresenter.rotate()
+        }
 
         findViewById<ImageView>(R.id.done).setOnClickListener {
             Log.e(TAG, "Saved touched!")
             mPresenter.save()
-            setResult(Activity.RESULT_OK)
+            val output = Intent().apply {
+                putExtra(
+                    EdgeDetectionHandler.SAVE_TO,
+                    initialBundle.getString(EdgeDetectionHandler.SAVE_TO)
+                )
+            }
+            setResult(Activity.RESULT_OK, output)
             System.gc()
             finish()// Save logic
         }
@@ -149,9 +160,11 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         this.showMenuItems = showMenuItems
         val buttonRow = findViewById<LinearLayout>(R.id.button_row)
         val cropButton = findViewById<ImageView>(R.id.crop)
+        val rotatePreButton = findViewById<ImageView>(R.id.rotate_pre)
 
         buttonRow.visibility = if (showMenuItems) View.VISIBLE else View.GONE
         cropButton.visibility = if (showMenuItems) View.GONE else View.VISIBLE
+        rotatePreButton.visibility = if (showMenuItems) View.GONE else View.VISIBLE
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

@@ -1,6 +1,6 @@
 # edge_detection
 
-A flutter plugin to detect edges of objects, scan paper, detect corners, detect rectangles. It allows cropping of the detected object image and returns the path of the cropped image.
+A flutter plugin to detect edges of objects, scan paper, detect corners, detect rectangles. It allows cropping detected images and returns one or more saved image paths.
 
 ## Usage:
 
@@ -120,7 +120,7 @@ String imagePath = join((await getApplicationSupportDirectory()).path,
 
 try {
     //Make sure to await the call to detectEdge.
-    bool success = await EdgeDetection.detectEdge(imagePath,
+    List<String> paths = await EdgeDetection.detectEdge(imagePath,
         canUseGallery: true,
         androidScanTitle: 'Scanning', // use custom localizations for android
         androidCropTitle: 'Crop',
@@ -135,7 +135,7 @@ try {
 
 try {
     //Make sure to await the call to detectEdgeFromGallery.
-    bool success = await EdgeDetection.detectEdgeFromGallery(imagePath,
+    List<String> paths = await EdgeDetection.detectEdgeFromGallery(imagePath,
         androidCropTitle: 'Crop', // use custom localizations for android
         androidCropBlackWhiteTitle: 'Black White',
         androidCropReset: 'Reset',

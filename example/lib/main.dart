@@ -16,7 +16,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String? _imagePath;
+  List<String> _imagePaths = [];
 
   @override
   void initState() {
@@ -39,11 +39,11 @@ class _MyAppState extends State<MyApp> {
     String imagePath = join((await getApplicationSupportDirectory()).path,
         "${(DateTime.now().millisecondsSinceEpoch / 1000).round()}.jpeg");
 
-    bool success = false;
+    List<String> paths = const [];
 
     try {
       //Make sure to await the call to detectEdge.
-      success = await EdgeDetection.detectEdge(
+      paths = await EdgeDetection.detectEdge(
         imagePath,
         canUseGallery: true,
         androidScanTitle: 'Scanning', // use custom localizations for android
@@ -51,7 +51,7 @@ class _MyAppState extends State<MyApp> {
         androidCropBlackWhiteTitle: 'Black White',
         androidCropReset: 'Reset',
       );
-      print("success: $success");
+      print("paths: $paths");
     } catch (e) {
       print(e);
     }
@@ -62,9 +62,7 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      if (success) {
-        _imagePath = imagePath;
-      }
+      _imagePaths = paths;
     });
   }
 
@@ -73,16 +71,16 @@ class _MyAppState extends State<MyApp> {
     String imagePath = join((await getApplicationSupportDirectory()).path,
         "${(DateTime.now().millisecondsSinceEpoch / 1000).round()}.jpeg");
 
-    bool success = false;
+    List<String> paths = const [];
     try {
       //Make sure to await the call to detectEdgeFromGallery.
-      success = await EdgeDetection.detectEdgeFromGallery(
+      paths = await EdgeDetection.detectEdgeFromGallery(
         imagePath,
         androidCropTitle: 'Crop', // use custom localizations for android
         androidCropBlackWhiteTitle: 'Black White',
         androidCropReset: 'Reset',
       );
-      print("success: $success");
+      print("paths: $paths");
     } catch (e) {
       print(e);
     }
@@ -93,9 +91,7 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      if (success) {
-        _imagePath = imagePath;
-      }
+      _imagePaths = paths;
     });
   }
 
@@ -125,21 +121,21 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               SizedBox(height: 20),
-              Text('Cropped image path:'),
+              Text('Cropped image paths:'),
               Padding(
                 padding: const EdgeInsets.only(top: 0, left: 0, right: 0),
                 child: Text(
-                  _imagePath.toString(),
+                  _imagePaths.join('\n'),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14),
                 ),
               ),
               Visibility(
-                visible: _imagePath != null,
+                visible: _imagePaths.isNotEmpty,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Image.file(
-                    File(_imagePath ?? ''),
+                    File(_imagePaths.first),
                   ),
                 ),
               ),

@@ -45,6 +45,7 @@ class EdgeDetectionHandler : MethodCallHandler, PluginRegistry.ActivityResultLis
         const val INITIAL_BUNDLE = "initial_bundle"
         const val FROM_GALLERY = "from_gallery"
         const val SAVE_TO = "save_to"
+        const val RESULT_PATHS = "result_paths"
         const val CAN_USE_GALLERY = "can_use_gallery"
         const val SCAN_TITLE = "scan_title"
         const val CROP_TITLE = "crop_title"
@@ -87,10 +88,11 @@ class EdgeDetectionHandler : MethodCallHandler, PluginRegistry.ActivityResultLis
         if (requestCode == REQUEST_CODE) {
             when (resultCode) {
                 Activity.RESULT_OK -> {
-                    finishWithSuccess(true)
+                    val resultPaths = data?.getStringArrayListExtra(RESULT_PATHS) ?: arrayListOf()
+                    finishWithSuccess(resultPaths)
                 }
                 Activity.RESULT_CANCELED -> {
-                    finishWithSuccess(false)
+                    finishWithSuccess(arrayListOf<String>())
                 }
                 ERROR_CODE -> {
                     finishWithError(ERROR_CODE.toString(), data?.getStringExtra("RESULT") ?: "ERROR")
@@ -162,7 +164,7 @@ class EdgeDetectionHandler : MethodCallHandler, PluginRegistry.ActivityResultLis
         clearMethodCallAndResult()
     }
 
-    private fun finishWithSuccess(res: Boolean) {
+    private fun finishWithSuccess(res: ArrayList<String>) {
         result?.success(res)
         clearMethodCallAndResult()
     }

@@ -5,16 +5,18 @@ import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.SourceManager
+import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.processor.Corners
 import com.sample.edgedetection.processor.TAG
 import com.sample.edgedetection.processor.cropPicture
 import com.sample.edgedetection.processor.enhancePicture
+import com.sample.edgedetection.processor.processPicture
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.opencv.android.Utils
+import org.opencv.core.Core
 import org.opencv.core.Mat
 import java.io.File
 import java.io.FileOutputStream
@@ -23,9 +25,9 @@ class CropPresenter(
     private val iCropView: ICropView.Proxy,
     private val initialBundle: Bundle
 ) {
-    private val picture: Mat? = SourceManager.pic
+    private var picture: Mat? = SourceManager.pic
     private var isCropped = false
-    private val corners: Corners? = SourceManager.corners
+    private var corners: Corners? = SourceManager.corners
     private var croppedPicture: Mat? = null
     private var enhancedPicture: Bitmap? = null
     private var croppedBitmap: Bitmap? = null
@@ -34,13 +36,10 @@ class CropPresenter(
     private var currentThreshold = 15
 
     fun onViewsReady(paperWidth: Int, paperHeight: Int) {
-        iCropView.getPaperRect().onCorners2Crop(corners, picture?.size(), paperWidth, paperHeight)
-        val bitmap = Bitmap.createBitmap(
-            picture?.width() ?: 1080,
-            picture?.height() ?: 1920,
-            Bitmap.Config.ARGB_8888
-        )
-        Utils.matToBitmap(picture, bitmap, true)
+        val pic = picture ?: return
+        iCropView.getPaperRect().onCorners2Crop(corners, pic.size(), paperWidth, paperHeight)
+        val bitmap = Bitmap.createBitmap(pic.width(), pic.height(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(pic, bitmap, true)
         iCropView.getPaper().setImageBitmap(bitmap)
     }
 
@@ -137,8 +136,8 @@ class CropPresenter(
     }
 
     fun rotate() {
-        if (croppedBitmap == null && enhancedPicture == null) {
-            Log.i(TAG, "picture null?")
+        if (!isCropped) {
+            rotatePreCrop()
             return
         }
 
@@ -160,6 +159,29 @@ class CropPresenter(
 
         enhancedPicture = rotateBitmap
         croppedBitmap = croppedBitmap?.rotateInt(rotateBitmapDegree)
+    }
+
+    private fun rotatePreCrop() {
+        val originalPicture = picture ?: run {
+            Log.i(TAG, "picture null?")
+            return
+        }
+        val rotatedPicture = Mat()
+        Core.rotate(originalPicture, rotatedPicture, Core.ROTATE_90_CLOCKWISE)
+        picture = rotatedPicture
+        SourceManager.pic = rotatedPicture
+        corners = processPicture(rotatedPicture)
+        SourceManager.corners = corners
+
+        val bitmap = Bitmap.createBitmap(rotatedPicture.width(), rotatedPicture.height(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(rotatedPicture, bitmap, true)
+        iCropView.getPaper().setImageBitmap(bitmap)
+        iCropView.getPaperRect().onCorners2Crop(
+            corners,
+            rotatedPicture.size(),
+            iCropView.getPaper().width,
+            iCropView.getPaper().height
+        )
     }
 
     fun save() {
