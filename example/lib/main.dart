@@ -130,15 +130,16 @@ class _MyAppState extends State<MyApp> {
                   style: TextStyle(fontSize: 14),
                 ),
               ),
-              Visibility(
-                visible: _imagePaths.isNotEmpty,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Image.file(
-                    File(_imagePaths.first),
+              if (_imagePaths.isNotEmpty)
+                Visibility(
+                  visible: _imagePaths.isNotEmpty,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Image.file(
+                      File(_imagePaths.first),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

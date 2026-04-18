@@ -43,8 +43,8 @@ class CropPresenter(
         iCropView.getPaper().setImageBitmap(bitmap)
     }
 
-    fun crop() {
-        if (picture == null) {
+    fun crop(onComplete: (() -> Unit)? = null) {
+        val sourcePicture: Mat = picture ?: run {
             Log.i(TAG, "picture null?")
             return
         }
@@ -55,7 +55,7 @@ class CropPresenter(
         }
 
         Observable.create<Mat> {
-            it.onNext(cropPicture(picture, iCropView.getPaperRect().getCorners2Crop()))
+            it.onNext(cropPicture(sourcePicture, iCropView.getPaperRect().getCorners2Crop()))
         }
             .subscribeOn(Schedulers.computation())
             .observeOn(AndroidSchedulers.mainThread())
@@ -68,6 +68,7 @@ class CropPresenter(
                 iCropView.getPaper().visibility = View.GONE
                 iCropView.getPaperRect().visibility = View.GONE
                 isCropped = true
+                onComplete?.invoke()
             }
     }
 
@@ -193,7 +194,6 @@ class CropPresenter(
             rotatePic.compress(Bitmap.CompressFormat.JPEG, 100, outStream)
             outStream.flush()
             outStream.close()
-            rotatePic.recycle()
             Log.i(TAG, "RotateBitmap Saved")
         } else {
             val pic = enhancedPicture
@@ -202,7 +202,6 @@ class CropPresenter(
                 pic.compress(Bitmap.CompressFormat.JPEG, 100, outStream)
                 outStream.flush()
                 outStream.close()
-                pic.recycle()
                 Log.i(TAG, "EnhancedPicture Saved")
             } else {
                 val cropPic = croppedBitmap
@@ -211,7 +210,6 @@ class CropPresenter(
                     cropPic.compress(Bitmap.CompressFormat.JPEG, 100, outStream)
                     outStream.flush()
                     outStream.close()
-                    cropPic.recycle()
                     Log.i(TAG, "CroppedBitmap Saved")
                 }
             }

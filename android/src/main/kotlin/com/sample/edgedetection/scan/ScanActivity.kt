@@ -6,12 +6,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.net.ClipData
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -37,13 +38,17 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     private lateinit var mPresenter: ScanPresenter
     private lateinit var initialBundle: Bundle
+    private lateinit var baseSavePath: String
     private var fromGalleryMode: Boolean = false
+    private var canUseFlash: Boolean = false
     private val capturedPaths = arrayListOf<String>()
+    private val pendingGalleryUris = ArrayDeque<Uri>()
 
     override fun provideContentViewId(): Int = R.layout.activity_scan
 
     override fun initPresenter() {
         initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
+        baseSavePath = initialBundle.getString(EdgeDetectionHandler.SAVE_TO).orEmpty()
         Log.d("EdgeDetection", "ScanActivity bundle: ${initialBundle.keySet().joinToString()}")
         fromGalleryMode = initialBundle.getBoolean(EdgeDetectionHandler.FROM_GALLERY, false)
 
@@ -69,15 +74,10 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             }
         }
 
-        // to hide the flashLight button from  SDK versions which we do not handle the permission for!
-        findViewById<View>(R.id.flash).visibility = if
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU && baseContext.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH))
-            View.VISIBLE else
-                View.GONE
-
-        findViewById<View>(R.id.flash).setOnClickListener {
-            mPresenter.toggleFlash()
-        }
+        canUseFlash = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU &&
+            baseContext.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
+        invalidateOptionsMenu()
 
         if(!fromGalleryMode){
             this.title = initialBundle.getString(EdgeDetectionHandler.SCAN_TITLE, "") as String
@@ -91,10 +91,10 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
         findViewById<View>(R.id.gallery).setOnClickListener {
             pickupFromGallery()
         }
-
-        findViewById<Button>(R.id.finish_session).setOnClickListener {
+        findViewById<View>(R.id.finish_session).setOnClickListener {
             finishWithCapturedPaths()
         }
+
         updateCapturedPreviewUi()
 
         if (fromGalleryMode) {
@@ -104,7 +104,10 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     private fun pickupFromGallery() {
         mPresenter.stop()
-        val gallery = Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply{type="image/*"}
+        val gallery = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
         ActivityCompat.startActivityForResult(this, gallery, 1, null)
     }
 
@@ -147,14 +150,20 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
                     updateCapturedPreviewUi()
                 }
 
-                if (fromGalleryMode) {
-                    finishWithCapturedPaths()
+                if (pendingGalleryUris.isNotEmpty()) {
+                    processNextPendingGalleryUri()
+                } else if (fromGalleryMode) {
+                    pickupFromGallery()
                 } else {
                     mPresenter.start()
                 }
             } else {
-                if (fromGalleryMode && capturedPaths.isEmpty())
+                if (pendingGalleryUris.isNotEmpty()) {
+                    processNextPendingGalleryUri()
+                } else if (fromGalleryMode && capturedPaths.isEmpty())
                     finish()
+                else if (fromGalleryMode)
+                    pickupFromGallery()
                 else
                     mPresenter.start()
             }
@@ -162,13 +171,14 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
         if (requestCode == 1) {
             if (resultCode == Activity.RESULT_OK) {
-                val uri: Uri = data!!.data!!
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    onImageSelected(uri)
-                }
+                enqueueSelectedUris(data)
+                processNextPendingGalleryUri()
             }else if(resultCode == Activity.RESULT_CANCELED){
                 if (fromGalleryMode && capturedPaths.isEmpty()) {
                     finish()
+                } else if (fromGalleryMode) {
+                    // In gallery session mode, cancellation means user is done selecting.
+                    finishWithCapturedPaths()
                 } else {
                     mPresenter.start()
                 }
@@ -185,7 +195,23 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             onBackPressed()
             true
         }
+        R.id.action_toggle_flash -> {
+            mPresenter.toggleFlash()
+            true
+        }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.scan_activity_menu, menu)
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val flashItem = menu.findItem(R.id.action_toggle_flash)
+        flashItem?.isVisible = canUseFlash
+        flashItem?.isEnabled = canUseFlash
+        return super.onPrepareOptionsMenu(menu)
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -251,6 +277,34 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     }
 
+    private fun enqueueSelectedUris(data: Intent?) {
+        if (data == null) return
+        val clipData: ClipData? = data.clipData
+        if (clipData != null && clipData.itemCount > 0) {
+            for (index in 0 until clipData.itemCount) {
+                clipData.getItemAt(index)?.uri?.let { pendingGalleryUris.add(it) }
+            }
+            return
+        }
+        data.data?.let { pendingGalleryUris.add(it) }
+    }
+
+    private fun processNextPendingGalleryUri() {
+        if (pendingGalleryUris.isEmpty()) {
+            return
+        }
+        val nextUri = pendingGalleryUris.removeFirst()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            onImageSelected(nextUri)
+        } else {
+            // Existing gallery flow already only supports API 28+ decode logic.
+            pendingGalleryUris.clear()
+            if (fromGalleryMode && capturedPaths.isEmpty()) {
+                finish()
+            }
+        }
+    }
+
     @Throws(IOException::class)
     fun getBytes(inputStream: InputStream): ByteArray? {
         val byteBuffer = ByteArrayOutputStream()
@@ -264,7 +318,7 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
     }
 
     private fun createNextSavePath(): String {
-        val basePath = initialBundle.getString(EdgeDetectionHandler.SAVE_TO).orEmpty()
+        val basePath = baseSavePath
         if (basePath.isEmpty()) {
             return basePath
         }
@@ -284,8 +338,8 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     private fun updateCapturedPreviewUi() {
         val thumbsContainer = findViewById<LinearLayout>(R.id.thumbnail_container)
-        val finishButton = findViewById<Button>(R.id.finish_session)
         val thumbsScroll = findViewById<HorizontalScrollView>(R.id.thumbnail_scroll)
+        val finishButton = findViewById<ImageView>(R.id.finish_session)
 
         thumbsContainer.removeAllViews()
         if (capturedPaths.isEmpty()) {
@@ -327,10 +381,60 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             setPadding(24, 24, 24, 24)
         }
 
-        AlertDialog.Builder(this)
-            .setView(preview)
+        val container = FrameLayout(this).apply {
+            addView(
+                preview,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
+        val deleteButton = ImageView(this).apply {
+            setImageResource(android.R.drawable.ic_menu_delete)
+            setBackgroundResource(R.drawable.round_button)
+            setPadding(20, 20, 20, 20)
+        }
+        val deleteParams = FrameLayout.LayoutParams(
+            resources.displayMetrics.density.times(52).toInt(),
+            resources.displayMetrics.density.times(52).toInt()
+        ).apply {
+            gravity = Gravity.TOP or Gravity.END
+            val margin = resources.displayMetrics.density.times(12).toInt()
+            setMargins(margin, margin, margin, margin)
+        }
+        container.addView(deleteButton, deleteParams)
+
+        val previewDialog = AlertDialog.Builder(this)
+            .setView(container)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create()
+
+        deleteButton.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.delete_photo_title)
+                .setMessage(R.string.delete_photo_message)
+                .setPositiveButton(android.R.string.yes) { _, _ ->
+                    deleteCapturedPhoto(path)
+                    previewDialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.no, null)
+                .show()
+        }
+
+        previewDialog.show()
+    }
+
+    private fun deleteCapturedPhoto(path: String) {
+        capturedPaths.remove(path)
+        runCatching {
+            val file = File(path)
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        updateCapturedPreviewUi()
     }
 
     private fun finishWithCapturedPaths() {
