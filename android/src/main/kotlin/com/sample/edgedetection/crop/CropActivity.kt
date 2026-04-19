@@ -21,6 +21,13 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     override fun prepare() {
         initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         this.title = initialBundle.getString(EdgeDetectionHandler.CROP_TITLE) ?: "Crop script"
+        val total = initialBundle.getInt(EdgeDetectionHandler.GALLERY_CROP_TOTAL, 0)
+        val index = initialBundle.getInt(EdgeDetectionHandler.GALLERY_CROP_INDEX, 0)
+        if (total >= 1 && index > 0 && index <= total) {
+            supportActionBar?.subtitle = getString(R.string.crop_photo_progress, index, total)
+        } else {
+            supportActionBar?.subtitle = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -249,7 +249,7 @@ class ScanPresenter constructor(
             copied
         }
     }
-    fun detectEdge(pic: Mat) {
+    fun detectEdge(pic: Mat, galleryCropIndex: Int = 0, galleryCropTotal: Int = 0) {
         Log.i("height", pic.size().height.toString())
         Log.i("width", pic.size().width.toString())
         val resizedMat = matrixResizer(pic)
@@ -257,6 +257,13 @@ class ScanPresenter constructor(
         Imgproc.cvtColor(resizedMat, resizedMat, Imgproc.COLOR_RGB2BGRA)
         SourceManager.pic = resizedMat
         Log.d("EdgeDetection", "ScanPresenter bundle before CropActivity: ${this.initialBundle.keySet().joinToString()}")
+
+        initialBundle.remove(EdgeDetectionHandler.GALLERY_CROP_INDEX)
+        initialBundle.remove(EdgeDetectionHandler.GALLERY_CROP_TOTAL)
+        if (galleryCropIndex > 0 && galleryCropTotal > 0) {
+            initialBundle.putInt(EdgeDetectionHandler.GALLERY_CROP_INDEX, galleryCropIndex)
+            initialBundle.putInt(EdgeDetectionHandler.GALLERY_CROP_TOTAL, galleryCropTotal)
+        }
 
         initialBundle.putString(EdgeDetectionHandler.SAVE_TO, nextSavePathProvider())
         val cropIntent = Intent(context, CropActivity::class.java)

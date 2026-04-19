@@ -16,6 +16,7 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
     private var hasFinished = false
     private var savedPaths: [String] = []
     private var pendingGalleryImages: [UIImage] = []
+    private var galleryBatchTotal: Int = 0
     private var previewedPath: String?
     private weak var activePreviewController: UIViewController?
 
@@ -60,6 +61,10 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
 
     private func presentScanner(with image: UIImage? = nil) {
         let scanner = image == nil ? ImageScannerController() : ImageScannerController(image: image!)
+        if let _ = image, galleryBatchTotal > 0 {
+            let idx = savedPaths.count + 1
+            scanner.title = String(format: "Cropping photo %d of %d", idx, galleryBatchTotal)
+        }
         scanner.imageScannerDelegate = self
         applyDarkAppearance(to: scanner)
         cameraController = scanner
@@ -157,8 +162,11 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
     }
 
     private func refreshOverlay() {
-        doneButton.isEnabled = !savedPaths.isEmpty
-        doneButton.alpha = savedPaths.isEmpty ? 0.55 : 1.0
+        let batchComplete = pendingGalleryImages.isEmpty
+        doneButton.isEnabled = !savedPaths.isEmpty && batchComplete
+        let showDone = !savedPaths.isEmpty && batchComplete
+        doneButton.alpha = showDone ? 1.0 : 0.55
+        doneButton.isHidden = !showDone
 
         for view in thumbnailStack.arrangedSubviews {
             thumbnailStack.removeArrangedSubview(view)
@@ -244,6 +252,7 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
         }
 
         pendingGalleryImages = [image]
+        galleryBatchTotal = 1
         picker.dismiss(animated: true) {
             self.processNextPendingGalleryImage()
         }
@@ -279,6 +288,7 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
 
             dispatchGroup.notify(queue: .main) {
                 self.pendingGalleryImages = loadedImages
+                self.galleryBatchTotal = loadedImages.count
                 self.processNextPendingGalleryImage()
             }
         }
@@ -383,9 +393,8 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
         scanner.dismiss(animated: true) {
             if !self.pendingGalleryImages.isEmpty {
                 self.processNextPendingGalleryImage()
-            } else if self.startFromGallery {
-                self.presentImagePicker()
             } else {
+                self.galleryBatchTotal = 0
                 self.presentScanner()
             }
         }
@@ -397,9 +406,8 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
                 self.processNextPendingGalleryImage()
             } else if self.savedPaths.isEmpty {
                 self.finishSession()
-            } else if self.startFromGallery {
-                self.presentImagePicker()
             } else {
+                self.galleryBatchTotal = 0
                 self.presentScanner()
             }
         }
@@ -424,11 +432,8 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
 
     private func processNextPendingGalleryImage() {
         if pendingGalleryImages.isEmpty {
-            if startFromGallery {
-                presentImagePicker()
-            } else {
-                presentScanner()
-            }
+            galleryBatchTotal = 0
+            presentScanner()
             return
         }
         let nextImage = pendingGalleryImages.removeFirst()

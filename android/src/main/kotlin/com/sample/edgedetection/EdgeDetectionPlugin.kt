@@ -51,6 +51,10 @@ class EdgeDetectionHandler : MethodCallHandler, PluginRegistry.ActivityResultLis
         const val CROP_TITLE = "crop_title"
         const val CROP_BLACK_WHITE_TITLE = "crop_black_white_title"
         const val CROP_RESET_TITLE = "crop_reset_title"
+        /** 1-based index of the image being cropped in a multi-select gallery batch. */
+        const val GALLERY_CROP_INDEX = "gallery_crop_index"
+        /** Total images in the current gallery batch. */
+        const val GALLERY_CROP_TOTAL = "gallery_crop_total"
     }
 
     fun setActivityPluginBinding(activityPluginBinding: ActivityPluginBinding) {

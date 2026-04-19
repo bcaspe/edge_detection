@@ -43,6 +43,8 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
     private var canUseFlash: Boolean = false
     private val capturedPaths = arrayListOf<String>()
     private val pendingGalleryUris = ArrayDeque<Uri>()
+    /** Set when the user picks from the gallery; used for crop-screen progress (N of M). */
+    private var galleryCropBatchTotal: Int = 0
 
     override fun provideContentViewId(): Int = R.layout.activity_scan
 
@@ -152,8 +154,6 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
                 if (pendingGalleryUris.isNotEmpty()) {
                     processNextPendingGalleryUri()
-                } else if (fromGalleryMode) {
-                    pickupFromGallery()
                 } else {
                     mPresenter.start()
                 }
@@ -163,7 +163,7 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
                 } else if (fromGalleryMode && capturedPaths.isEmpty())
                     finish()
                 else if (fromGalleryMode)
-                    pickupFromGallery()
+                    mPresenter.start()
                 else
                     mPresenter.start()
             }
@@ -267,7 +267,15 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             if (rotation > -1) Core.rotate(pic, pic, rotation)
             mat.release()
 
-            mPresenter.detectEdge(pic)
+            if (galleryCropBatchTotal > 0) {
+                mPresenter.detectEdge(
+                    pic,
+                    galleryCropIndex = capturedPaths.size + 1,
+                    galleryCropTotal = galleryCropBatchTotal
+                )
+            } else {
+                mPresenter.detectEdge(pic)
+            }
         } catch (error: Exception) {
             val intent = Intent()
             intent.putExtra("RESULT", error.toString())
@@ -284,9 +292,10 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             for (index in 0 until clipData.itemCount) {
                 clipData.getItemAt(index)?.uri?.let { pendingGalleryUris.add(it) }
             }
-            return
+        } else {
+            data.data?.let { pendingGalleryUris.add(it) }
         }
-        data.data?.let { pendingGalleryUris.add(it) }
+        galleryCropBatchTotal = pendingGalleryUris.size
     }
 
     private fun processNextPendingGalleryUri() {
@@ -349,7 +358,9 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
         }
 
         thumbsScroll.visibility = View.VISIBLE
-        finishButton.visibility = View.VISIBLE
+        val galleryBatchIncomplete = pendingGalleryUris.isNotEmpty()
+        finishButton.visibility =
+            if (galleryBatchIncomplete) View.GONE else View.VISIBLE
 
         capturedPaths.forEach { path ->
             val thumb = ImageView(this)
