@@ -52,6 +52,12 @@ final class ReviewViewController: UIViewController {
         return button
     }()
 
+    private lazy var addPageButton: UIBarButtonItem = {
+        let button = UIBarButtonItem(title: "Add Page", style: .plain, target: self, action: #selector(addPage))
+        button.tintColor = navigationController?.navigationBar.tintColor
+        return button
+    }()
+
     private let results: ImageScannerResults
 
     // MARK: - Life Cycle
@@ -80,6 +86,8 @@ final class ReviewViewController: UIViewController {
                                   value: "Review",
                                   comment: "The review title of the ReviewController"
         )
+        navigationItem.hidesBackButton = true
+        navigationItem.leftBarButtonItem = addPageButton
         navigationItem.rightBarButtonItem = doneButton
     }
 
@@ -170,12 +178,21 @@ final class ReviewViewController: UIViewController {
     }
 
     @objc private func finishScan() {
+        submitScan(shouldFinishSession: true)
+    }
+
+    @objc private func addPage() {
+        submitScan(shouldFinishSession: false)
+    }
+
+    private func submitScan(shouldFinishSession: Bool) {
         guard let imageScannerController = navigationController as? ImageScannerController else { return }
 
         var newResults = results
         newResults.croppedScan.rotate(by: rotationAngle)
         newResults.enhancedScan?.rotate(by: rotationAngle)
         newResults.doesUserPreferEnhancedScan = isCurrentlyDisplayingEnhancedImage
+        imageScannerController.completionMode = shouldFinishSession ? .finishSession : .continueScanning
         imageScannerController.imageScannerDelegate?
             .imageScannerController(imageScannerController, didFinishScanningWithResults: newResults)
     }

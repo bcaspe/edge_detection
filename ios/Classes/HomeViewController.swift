@@ -23,7 +23,6 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
     private let overlayContainer = UIView()
     private let thumbnailScroll = UIScrollView()
     private let thumbnailStack = UIStackView()
-    private let doneButton = UIButton(type: .system)
     private let selectPhotoButton = UIButton(type: .system)
     private var overlayConfigured = false
     private var overlayExternalConstraints: [NSLayoutConstraint] = []
@@ -102,14 +101,6 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
             thumbnailStack.spacing = 8
             thumbnailStack.alignment = .center
 
-            doneButton.translatesAutoresizingMaskIntoConstraints = false
-            doneButton.setTitle("Done", for: .normal)
-            doneButton.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.9)
-            doneButton.setTitleColor(.white, for: .normal)
-            doneButton.layer.cornerRadius = 6
-            doneButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
-            doneButton.addTarget(self, action: #selector(finishTapped), for: .touchUpInside)
-
             selectPhotoButton.translatesAutoresizingMaskIntoConstraints = false
             selectPhotoButton.setImage(
                 UIImage(named: "gallery", in: Bundle(for: SwiftEdgeDetectionPlugin.self), compatibleWith: nil)?
@@ -122,25 +113,20 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
             selectPhotoButton.addTarget(self, action: #selector(selectPhoto), for: .touchUpInside)
 
             overlayContainer.addSubview(thumbnailScroll)
-            overlayContainer.addSubview(doneButton)
             thumbnailScroll.addSubview(thumbnailStack)
 
             NSLayoutConstraint.activate([
                 thumbnailScroll.leadingAnchor.constraint(equalTo: overlayContainer.leadingAnchor, constant: 10),
                 thumbnailScroll.topAnchor.constraint(equalTo: overlayContainer.topAnchor, constant: 8),
                 thumbnailScroll.bottomAnchor.constraint(equalTo: overlayContainer.bottomAnchor, constant: -8),
-                thumbnailScroll.trailingAnchor.constraint(equalTo: doneButton.leadingAnchor, constant: -10),
+                thumbnailScroll.trailingAnchor.constraint(equalTo: overlayContainer.trailingAnchor, constant: -10),
                 thumbnailScroll.heightAnchor.constraint(equalToConstant: 52),
 
                 thumbnailStack.leadingAnchor.constraint(equalTo: thumbnailScroll.leadingAnchor),
                 thumbnailStack.trailingAnchor.constraint(equalTo: thumbnailScroll.trailingAnchor),
                 thumbnailStack.topAnchor.constraint(equalTo: thumbnailScroll.topAnchor),
                 thumbnailStack.bottomAnchor.constraint(equalTo: thumbnailScroll.bottomAnchor),
-                thumbnailStack.heightAnchor.constraint(equalTo: thumbnailScroll.heightAnchor),
-
-                doneButton.centerYAnchor.constraint(equalTo: overlayContainer.centerYAnchor),
-                doneButton.trailingAnchor.constraint(equalTo: overlayContainer.trailingAnchor, constant: -10),
-                doneButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 62)
+                thumbnailStack.heightAnchor.constraint(equalTo: thumbnailScroll.heightAnchor)
             ])
         }
         selectPhotoButton.isHidden = !canUseGallery
@@ -162,12 +148,6 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
     }
 
     private func refreshOverlay() {
-        let batchComplete = pendingGalleryImages.isEmpty
-        doneButton.isEnabled = !savedPaths.isEmpty && batchComplete
-        let showDone = !savedPaths.isEmpty && batchComplete
-        doneButton.alpha = showDone ? 1.0 : 0.55
-        doneButton.isHidden = !showDone
-
         for view in thumbnailStack.arrangedSubviews {
             thumbnailStack.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -294,10 +274,6 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
         }
     }
 
-    @objc private func finishTapped() {
-        finishSession()
-    }
-
     @objc private func thumbnailTapped(_ sender: UIButton) {
         let index = sender.tag
         guard index >= 0 && index < savedPaths.count else { return }
@@ -389,10 +365,14 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
         if let imageToSave, let path = saveImage(image: imageToSave) {
             savedPaths.append(path)
         }
+        let shouldFinishSession = scanner.completionMode == .finishSession
+        scanner.completionMode = .continueScanning
 
         scanner.dismiss(animated: true) {
             if !self.pendingGalleryImages.isEmpty {
                 self.processNextPendingGalleryImage()
+            } else if shouldFinishSession {
+                self.finishSession()
             } else {
                 self.galleryBatchTotal = 0
                 self.presentScanner()
@@ -404,11 +384,8 @@ class HomeViewController: UIViewController, ImageScannerControllerDelegate, UIIm
         scanner.dismiss(animated: true) {
             if !self.pendingGalleryImages.isEmpty {
                 self.processNextPendingGalleryImage()
-            } else if self.savedPaths.isEmpty {
-                self.finishSession()
             } else {
-                self.galleryBatchTotal = 0
-                self.presentScanner()
+                self.finishSession()
             }
         }
     }

@@ -42,8 +42,14 @@ public protocol ImageScannerControllerDelegate: NSObjectProtocol {
 /// 3. Review the cropped down version of the rectangle.
 public final class ImageScannerController: UINavigationController {
 
+    public enum CompletionMode {
+        case continueScanning
+        case finishSession
+    }
+
     /// The object that acts as the delegate of the `ImageScannerController`.
     public weak var imageScannerDelegate: ImageScannerControllerDelegate?
+    public var completionMode: CompletionMode = .continueScanning
 
     // MARK: - Life Cycle
 
