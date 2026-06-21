@@ -43,39 +43,60 @@ class CropPresenter(
         iCropView.getPaper().setImageBitmap(bitmap)
     }
 
-    fun crop(onComplete: (() -> Unit)? = null) {
+    fun crop(onComplete: (() -> Unit)? = null, onError: (() -> Unit)? = null) {
         val sourcePicture: Mat = picture ?: run {
             Log.i(TAG, "picture null?")
+            onError?.invoke()
             return
         }
 
         if (croppedBitmap != null) {
             Log.i(TAG, "already cropped")
+            onComplete?.invoke()
             return
         }
 
-        Observable.create<Mat> {
-            it.onNext(cropPicture(sourcePicture, iCropView.getPaperRect().getCorners2Crop()))
+        Observable.create<Mat> { emitter ->
+            try {
+                emitter.onNext(
+                    cropPicture(sourcePicture, iCropView.getPaperRect().getCorners2Crop())
+                )
+                emitter.onComplete()
+            } catch (e: Exception) {
+                emitter.onError(e)
+            }
         }
             .subscribeOn(Schedulers.computation())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { pc ->
-                Log.i(TAG, "cropped picture: $pc")
-                croppedPicture = pc
-                croppedBitmap = Bitmap.createBitmap(pc.width(), pc.height(), Bitmap.Config.ARGB_8888)
-                Utils.matToBitmap(pc, croppedBitmap)
-                iCropView.getCroppedPaper().setImageBitmap(croppedBitmap)
-                iCropView.getPaper().visibility = View.GONE
-                iCropView.getPaperRect().visibility = View.GONE
-                isCropped = true
-                onComplete?.invoke()
-            }
+            .subscribe(
+                { pc ->
+                    Log.i(TAG, "cropped picture: ${pc.width()}x${pc.height()}")
+                    croppedPicture?.release()
+                    croppedPicture = pc
+                    croppedBitmap = Bitmap.createBitmap(
+                        pc.width(),
+                        pc.height(),
+                        Bitmap.Config.ARGB_8888
+                    )
+                    Utils.matToBitmap(pc, croppedBitmap)
+                    iCropView.getCroppedPaper().setImageBitmap(croppedBitmap)
+                    iCropView.getPaper().visibility = View.GONE
+                    iCropView.getPaperRect().visibility = View.GONE
+                    isCropped = true
+                    onComplete?.invoke()
+                },
+                { error ->
+                    Log.e(TAG, "crop failed", error)
+                    onError?.invoke()
+                }
+            )
     }
 
     fun handleBackButton(): Boolean {
         if (isCropped) {
             isCropped = false
             croppedBitmap = null
+            croppedPicture?.release()
             croppedPicture = null
             enhancedPicture = null
             rotateBitmap = null
@@ -167,6 +188,7 @@ class CropPresenter(
             Log.i(TAG, "picture null?")
             return
         }
+        com.sample.edgedetection.OpenCvBootstrap.configure()
         val rotatedPicture = Mat()
         Core.rotate(originalPicture, rotatedPicture, Core.ROTATE_90_CLOCKWISE)
         picture = rotatedPicture

@@ -2,6 +2,7 @@ package com.sample.edgedetection.processor
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.sample.edgedetection.OpenCvBootstrap
 import org.opencv.android.Utils
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
@@ -12,46 +13,29 @@ import kotlin.math.sqrt
 const val TAG: String = "PaperProcessor"
 
 fun processPicture(previewFrame: Mat): Corners? {
+    OpenCvBootstrap.configure()
     val contours = findContours(previewFrame)
     return getCorners(contours, previewFrame.size())
 }
 
 fun cropPicture(picture: Mat, pts: List<Point>): Mat {
-
     pts.forEach { Log.i(TAG, "point: $it") }
-    val tl = pts[0]
-    val tr = pts[1]
-    val br = pts[2]
-    val bl = pts[3]
+    OpenCvBootstrap.configure()
 
-    val widthA = sqrt((br.x - bl.x).pow(2.0) + (br.y - bl.y).pow(2.0))
-    val widthB = sqrt((tr.x - tl.x).pow(2.0) + (tr.y - tl.y).pow(2.0))
+    val sourceBitmap =
+        Bitmap.createBitmap(picture.width(), picture.height(), Bitmap.Config.ARGB_8888)
+    Utils.matToBitmap(picture, sourceBitmap)
 
-    val dw = max(widthA, widthB)
-    val maxWidth = java.lang.Double.valueOf(dw).toInt()
+    val croppedBitmap = try {
+        PerspectiveCropper.crop(sourceBitmap, pts)
+    } finally {
+        sourceBitmap.recycle()
+    }
 
-
-    val heightA = sqrt((tr.x - br.x).pow(2.0) + (tr.y - br.y).pow(2.0))
-    val heightB = sqrt((tl.x - bl.x).pow(2.0) + (tl.y - bl.y).pow(2.0))
-
-    val dh = max(heightA, heightB)
-    val maxHeight = java.lang.Double.valueOf(dh).toInt()
-
-    val croppedPic = Mat(maxHeight, maxWidth, CvType.CV_8UC4)
-
-    val srcMat = Mat(4, 1, CvType.CV_32FC2)
-    val dstMat = Mat(4, 1, CvType.CV_32FC2)
-
-    srcMat.put(0, 0, tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y)
-    dstMat.put(0, 0, 0.0, 0.0, dw, 0.0, dw, dh, 0.0, dh)
-
-    val m = Imgproc.getPerspectiveTransform(srcMat, dstMat)
-
-    Imgproc.warpPerspective(picture, croppedPic, m, croppedPic.size())
-    m.release()
-    srcMat.release()
-    dstMat.release()
-    Log.i(TAG, "crop finish")
+    val croppedPic = Mat()
+    Utils.bitmapToMat(croppedBitmap, croppedPic)
+    croppedBitmap.recycle()
+    Log.i(TAG, "crop finish (${croppedPic.width()}x${croppedPic.height()})")
     return croppedPic
 }
 
@@ -61,29 +45,30 @@ fun enhancePicture(src: Bitmap?, blockSize: Int = 15, constant: Double = 15.0): 
         Log.e(TAG, "Source bitmap is null!")
         throw IllegalArgumentException("Source bitmap cannot be null")
     }
-    
+
+    OpenCvBootstrap.configure()
     val srcMat = Mat()
     Utils.bitmapToMat(src, srcMat)
     Log.d(TAG, "Converted bitmap to Mat: ${srcMat.width()}x${srcMat.height()}")
-    
+
     Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_RGBA2GRAY)
     Log.d(TAG, "Converted to grayscale")
-    
+
     Imgproc.adaptiveThreshold(
         srcMat,
         srcMat,
         255.0,
         Imgproc.ADAPTIVE_THRESH_MEAN_C,
         Imgproc.THRESH_BINARY,
-        blockSize,     // Must be odd number
-        constant 
+        blockSize,
+        constant
     )
     Log.d(TAG, "Applied adaptive threshold")
-    
+
     val result = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.RGB_565)
     Utils.matToBitmap(srcMat, result, true)
     Log.d(TAG, "Converted back to bitmap")
-    
+
     srcMat.release()
     return result
 }
@@ -142,8 +127,7 @@ private fun getCorners(contours: List<MatOfPoint>, size: Size): Corners? {
             val points = approx.toArray().asList()
             val convex = MatOfPoint()
             approx.convertTo(convex, CvType.CV_32S)
-            // select biggest 4 angles polygon
-            if (points.size == 4 && Imgproc.isContourConvex(convex)) { 
+            if (points.size == 4 && Imgproc.isContourConvex(convex)) {
                 val foundPoints = sortPoints(points)
                 return Corners(foundPoints, size)
             }
@@ -154,6 +138,7 @@ private fun getCorners(contours: List<MatOfPoint>, size: Size): Corners? {
 
     return null
 }
+
 private fun sortPoints(points: List<Point>): List<Point> {
     val p0 = points.minByOrNull { point -> point.x + point.y } ?: Point()
     val p1 = points.minByOrNull { point: Point -> point.y - point.x } ?: Point()

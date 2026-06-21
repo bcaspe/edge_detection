@@ -8,6 +8,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import com.sample.edgedetection.EdgeDetectionHandler
+import com.sample.edgedetection.OpenCvBootstrap
 import com.sample.edgedetection.R
 import com.sample.edgedetection.base.BaseActivity
 import com.sample.edgedetection.view.PaperRectangle
@@ -31,6 +32,11 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (!OpenCvBootstrap.ensureLoaded()) {
+            setResult(Activity.RESULT_CANCELED)
+            finish()
+            return
+        }
         super.onCreate(savedInstanceState)
         findViewById<View>(R.id.paper).post {
             // we have to initialize everything in post when the view has been drawn and we have the actual height and width of the whole view
@@ -44,21 +50,26 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
         initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         mPresenter = CropPresenter(this, initialBundle)
 
-        findViewById<ImageView>(R.id.crop).setOnClickListener {
+        findViewById<ImageView>(R.id.crop).setOnClickListener { cropButton ->
             Log.e(TAG, "Crop touched!")
-            it.isEnabled = false
-            mPresenter.crop {
-                mPresenter.save()
-                val output = Intent().apply {
-                    putExtra(
-                        EdgeDetectionHandler.SAVE_TO,
-                        initialBundle.getString(EdgeDetectionHandler.SAVE_TO)
-                    )
+            cropButton.isEnabled = false
+            mPresenter.crop(
+                onComplete = {
+                    mPresenter.save()
+                    val output = Intent().apply {
+                        putExtra(
+                            EdgeDetectionHandler.SAVE_TO,
+                            initialBundle.getString(EdgeDetectionHandler.SAVE_TO)
+                        )
+                    }
+                    setResult(Activity.RESULT_OK, output)
+                    System.gc()
+                    finish()
+                },
+                onError = {
+                    cropButton.isEnabled = true
                 }
-                setResult(Activity.RESULT_OK, output)
-                System.gc()
-                finish()
-            }
+            )
         }
         findViewById<ImageView>(R.id.rotate_pre).setOnClickListener {
             Log.e(TAG, "Rotate (pre-crop) button clicked!")

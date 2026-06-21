@@ -24,8 +24,8 @@ import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.R
 import com.sample.edgedetection.REQUEST_CODE
 import com.sample.edgedetection.base.BaseActivity
+import com.sample.edgedetection.OpenCvBootstrap
 import com.sample.edgedetection.view.PaperRectangle
-import org.opencv.android.OpenCVLoader
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -60,15 +60,11 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
     }
 
     override fun prepare() {
-        if (!OpenCVLoader.initDebug()) {
+        if (!OpenCvBootstrap.ensureLoaded()) {
             Log.i(TAG, "loading opencv error, exit")
             finish()
+            return
         }
-        else {
-            Log.i("OpenCV", "OpenCV loaded Successfully!");
-        }
-
-        
 
         findViewById<View>(R.id.shut).setOnClickListener {
             if (mPresenter.canShut) {
