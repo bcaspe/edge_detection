@@ -46,6 +46,9 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
 
     override fun provideContentViewId(): Int = R.layout.activity_crop
 
+    override fun bottomBarInsetTargets(): List<View> =
+        listOf(findViewById(R.id.bottom_bar))
+
     override fun initPresenter() {
         initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         mPresenter = CropPresenter(this, initialBundle)

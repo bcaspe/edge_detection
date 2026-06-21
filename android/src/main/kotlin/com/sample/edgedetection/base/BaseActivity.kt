@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import com.sample.edgedetection.R
 
 abstract class BaseActivity : AppCompatActivity() {
@@ -13,11 +14,20 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(provideContentViewId())
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         initPresenter()
         transparentStatusBar()
+        applyBottomBarInsets()
         prepare()
+    }
+
+    /** Override to return bottom toolbars that should sit above the system navigation bar. */
+    protected open fun bottomBarInsetTargets(): List<View> = emptyList()
+
+    private fun applyBottomBarInsets() {
+        bottomBarInsetTargets().forEach { it.applySystemBarPadding(includeBottom = true) }
     }
 
     private fun transparentStatusBar(

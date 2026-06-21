@@ -48,6 +48,9 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
     override fun provideContentViewId(): Int = R.layout.activity_scan
 
+    override fun bottomBarInsetTargets(): List<View> =
+        listOf(findViewById(R.id.bottom_bar))
+
     override fun initPresenter() {
         initialBundle = intent.getBundleExtra(EdgeDetectionHandler.INITIAL_BUNDLE) ?: Bundle()
         baseSavePath = initialBundle.getString(EdgeDetectionHandler.SAVE_TO).orEmpty()
