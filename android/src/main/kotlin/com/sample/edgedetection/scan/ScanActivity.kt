@@ -65,6 +65,7 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
     override fun prepare() {
         if (!OpenCvBootstrap.ensureLoaded()) {
             Log.i(TAG, "loading opencv error, exit")
+            setResult(RESULT_CANCELED)
             finish()
             return
         }
