@@ -74,7 +74,7 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
                 }
             )
         }
-        findViewById<ImageView>(R.id.rotate_pre).setOnClickListener {
+        findViewById<View>(R.id.rotate_pre).setOnClickListener {
             Log.e(TAG, "Rotate (pre-crop) button clicked!")
             mPresenter.rotate()
         }

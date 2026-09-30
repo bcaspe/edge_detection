@@ -32,6 +32,8 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         private const val DEFAULT_TOUCH_TARGET_SIZE = 40F
         private const val MIN_SIDE_LENGTH = 50
         private const val STROKE_WIDTH = 4F
+        /** If detected crop covers less than this fraction of the image, use the full image. */
+        private const val MIN_CROP_AREA_RATIO = 0.3
     }
 
     private val rectPaint = Paint().apply {
@@ -45,10 +47,10 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         pathEffect = CornerPathEffect(10f)
     }
 
-    private val cornerPaint = Paint().apply {
-        style = Paint.Style.STROKE
-        strokeWidth = STROKE_WIDTH
-        color = Color.argb(255, 173, 216, 230)
+    /** Corner circles and side bars — solid blue so handles stay visible on any image. */
+    private val handlePaint = Paint().apply {
+        style = Paint.Style.FILL
+        color = Color.rgb(33, 150, 243) // Material Blue 500
         isAntiAlias = true
         isDither = true
     }
@@ -98,7 +100,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     private fun drawCorner(point: Point, canvas: Canvas?) {
-        canvas?.drawCircle(point.x.toFloat(), point.y.toFloat(), DEFAULT_CIRCLE_RADIUS, cornerPaint)
+        canvas?.drawCircle(point.x.toFloat(), point.y.toFloat(), DEFAULT_CIRCLE_RADIUS, handlePaint)
     }
 
     private fun drawTouchTargets(canvas: Canvas?) {
@@ -140,7 +142,7 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             path.transform(matrix)
 
             // Draw the rotated touch target
-            canvas?.drawPath(path, rectPaint)
+            canvas?.drawPath(path, handlePaint)
         }
     }
 
@@ -418,19 +420,64 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     }
 
     fun onCorners2Crop(corners: Corners?, size: Size?, paperWidth: Int, paperHeight: Int) {
-        if (size == null) {
+        if (size == null || paperWidth <= 0 || paperHeight <= 0) {
             return
         }
 
         cropMode = true
-        tl = corners?.corners?.get(0) ?: Point(size.width * 0.1, size.height * 0.1)
-        tr = corners?.corners?.get(1) ?: Point(size.width * 0.9, size.height * 0.1)
-        br = corners?.corners?.get(2) ?: Point(size.width * 0.9, size.height * 0.9)
-        bl = corners?.corners?.get(3) ?: Point(size.width * 0.1, size.height * 0.9)
+
+        val detected = corners?.corners
+        val candidate = if (
+            detected != null &&
+            detected.size >= 4 &&
+            detected[0] != null &&
+            detected[1] != null &&
+            detected[2] != null &&
+            detected[3] != null
+        ) {
+            listOf(detected[0]!!, detected[1]!!, detected[2]!!, detected[3]!!)
+        } else {
+            null
+        }
+
+        val imageArea = size.width * size.height
+        val detectedArea = candidate?.let { quadrilateralArea(it) } ?: 0.0
+        val useFullImage = candidate == null || detectedArea < imageArea * MIN_CROP_AREA_RATIO
+
+        if (useFullImage) {
+            Log.i(
+                TAG,
+                "Detected crop too small or missing (area=$detectedArea / $imageArea); defaulting to full image"
+            )
+            applyFullImageCorners(size)
+        } else {
+            tl = Point(candidate!![0].x, candidate[0].y)
+            tr = Point(candidate[1].x, candidate[1].y)
+            br = Point(candidate[2].x, candidate[2].y)
+            bl = Point(candidate[3].x, candidate[3].y)
+        }
+
         ratioX = size.width / paperWidth
         ratioY = size.height / paperHeight
         resize()
         movePoints()
+    }
+
+    private fun applyFullImageCorners(size: Size) {
+        tl = Point(0.0, 0.0)
+        tr = Point(size.width, 0.0)
+        br = Point(size.width, size.height)
+        bl = Point(0.0, size.height)
+    }
+
+    private fun quadrilateralArea(pts: List<Point>): Double {
+        var area = 0.0
+        for (i in pts.indices) {
+            val j = (i + 1) % pts.size
+            area += pts[i].x * pts[j].y
+            area -= pts[j].x * pts[i].y
+        }
+        return abs(area) / 2.0
     }
 
     fun getCorners2Crop(): List<Point> {
