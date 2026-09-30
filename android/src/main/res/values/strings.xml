@@ -19,5 +19,7 @@
 
     <string name="next">Next</string>
     <string name="done">Done</string>
+    <string name="finished">Finished</string>
+    <string name="add_more">Add more</string>
     <string name="crop_photo_progress">Cropping photo %1$d of %2$d</string>
 </resources>

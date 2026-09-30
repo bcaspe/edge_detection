@@ -63,6 +63,9 @@ class ScanPresenter constructor(
 
     private var mLastClickTime = 0L
     private var shutted: Boolean = true
+    /** True when the in-flight CropActivity was launched from a gallery image. */
+    var lastCropFromGallery: Boolean = false
+        private set
 
     init {
         mSurfaceHolder.addCallback(this)
@@ -250,6 +253,7 @@ class ScanPresenter constructor(
         }
     }
     fun detectEdge(pic: Mat, galleryCropIndex: Int = 0, galleryCropTotal: Int = 0) {
+        lastCropFromGallery = galleryCropTotal > 0
         Log.i("height", pic.size().height.toString())
         Log.i("width", pic.size().width.toString())
         val resizedMat = matrixResizer(pic)

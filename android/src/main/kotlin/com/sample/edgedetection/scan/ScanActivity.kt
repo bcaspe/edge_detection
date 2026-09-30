@@ -96,6 +96,12 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
         findViewById<View>(R.id.finish_session).setOnClickListener {
             finishWithCapturedPaths()
         }
+        findViewById<View>(R.id.btn_finished).setOnClickListener {
+            finishWithCapturedPaths()
+        }
+        findViewById<View>(R.id.btn_add_more).setOnClickListener {
+            onAddMoreFromPostGallery()
+        }
 
         updateCapturedPreviewUi()
 
@@ -154,6 +160,9 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
 
                 if (pendingGalleryUris.isNotEmpty()) {
                     processNextPendingGalleryUri()
+                } else if (mPresenter.lastCropFromGallery) {
+                    // Gallery → crop → confirm: offer Finished / Add more instead of camera.
+                    showPostGalleryActions()
                 } else {
                     mPresenter.start()
                 }
@@ -446,6 +455,28 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             }
         }
         updateCapturedPreviewUi()
+    }
+
+    private fun showPostGalleryActions() {
+        mPresenter.stop()
+        findViewById<View>(R.id.post_gallery_actions).visibility = View.VISIBLE
+        findViewById<View>(R.id.bottom_bar).visibility = View.GONE
+    }
+
+    private fun hidePostGalleryActions() {
+        findViewById<View>(R.id.post_gallery_actions).visibility = View.GONE
+        findViewById<View>(R.id.bottom_bar).visibility = View.VISIBLE
+    }
+
+    /** Add more: return to the start of this session (gallery picker or camera). */
+    private fun onAddMoreFromPostGallery() {
+        hidePostGalleryActions()
+        updateCapturedPreviewUi()
+        if (fromGalleryMode) {
+            pickupFromGallery()
+        } else {
+            mPresenter.start()
+        }
     }
 
     private fun finishWithCapturedPaths() {
