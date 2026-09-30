@@ -2,9 +2,11 @@ package com.sample.edgedetection.crop
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.graphics.RectF
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import com.sample.edgedetection.SourceManager
 import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.processor.Corners
@@ -35,12 +37,30 @@ class CropPresenter(
     private var rotateBitmapDegree: Int = -90
     private var currentThreshold = 15
 
-    fun onViewsReady(paperWidth: Int, paperHeight: Int) {
+    fun onViewsReady() {
         val pic = picture ?: return
-        iCropView.getPaperRect().onCorners2Crop(corners, pic.size(), paperWidth, paperHeight)
         val bitmap = Bitmap.createBitmap(pic.width(), pic.height(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(pic, bitmap, true)
-        iCropView.getPaper().setImageBitmap(bitmap)
+        val paper = iCropView.getPaper()
+        paper.setImageBitmap(bitmap)
+        // ImageView's fitCenter matrix is ready after the next layout pass
+        paper.post { syncCropOverlay() }
+    }
+
+    /** Align PaperRectangle to the bitmap's displayed (letterboxed) rect inside the ImageView. */
+    private fun syncCropOverlay() {
+        val pic = picture ?: return
+        val paper = iCropView.getPaper()
+        val displayRect = paper.bitmapDisplayRect()
+        if (displayRect.width() <= 0f || displayRect.height() <= 0f) {
+            Log.w(TAG, "bitmapDisplayRect empty; skipping overlay sync")
+            return
+        }
+        Log.i(
+            TAG,
+            "Crop overlay displayRect=$displayRect image=${pic.width()}x${pic.height()} view=${paper.width}x${paper.height}"
+        )
+        iCropView.getPaperRect().onCorners2Crop(corners, pic.size(), displayRect)
     }
 
     fun crop(onComplete: (() -> Unit)? = null, onError: (() -> Unit)? = null) {
@@ -106,9 +126,7 @@ class CropPresenter(
             iCropView.getCroppedPaper().setImageBitmap(null)
             
             // Reset the paper rectangle to original corners
-            val paperWidth = iCropView.getPaper().width
-            val paperHeight = iCropView.getPaper().height
-            iCropView.getPaperRect().onCorners2Crop(corners, picture?.size(), paperWidth, paperHeight)
+            syncCropOverlay()
         
             return true
         }
@@ -198,13 +216,9 @@ class CropPresenter(
 
         val bitmap = Bitmap.createBitmap(rotatedPicture.width(), rotatedPicture.height(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(rotatedPicture, bitmap, true)
-        iCropView.getPaper().setImageBitmap(bitmap)
-        iCropView.getPaperRect().onCorners2Crop(
-            corners,
-            rotatedPicture.size(),
-            iCropView.getPaper().width,
-            iCropView.getPaper().height
-        )
+        val paper = iCropView.getPaper()
+        paper.setImageBitmap(bitmap)
+        paper.post { syncCropOverlay() }
     }
 
     fun save() {
@@ -257,4 +271,28 @@ class CropPresenter(
             true
         )
     }
+}
+
+/** Rect of the drawable as drawn by fitCenter (includes padding), in ImageView coordinates. */
+private fun ImageView.bitmapDisplayRect(): RectF {
+    val d = drawable ?: return RectF()
+    val dwidth = d.intrinsicWidth.toFloat().coerceAtLeast(1f)
+    val dheight = d.intrinsicHeight.toFloat().coerceAtLeast(1f)
+
+    val mapped = RectF(0f, 0f, dwidth, dheight)
+    val matrix = Matrix(imageMatrix)
+    matrix.postTranslate(paddingLeft.toFloat(), paddingTop.toFloat())
+    matrix.mapRect(mapped)
+    if (mapped.width() > 1f && mapped.height() > 1f) {
+        return mapped
+    }
+
+    // Matrix not configured yet — compute fitCenter manually from view size
+    val vwidth = (width - paddingLeft - paddingRight).toFloat()
+    val vheight = (height - paddingTop - paddingBottom).toFloat()
+    if (vwidth <= 0f || vheight <= 0f) return RectF()
+    val scale = minOf(vwidth / dwidth, vheight / dheight)
+    val dx = paddingLeft + (vwidth - dwidth * scale) * 0.5f
+    val dy = paddingTop + (vheight - dheight * scale) * 0.5f
+    return RectF(dx, dy, dx + dwidth * scale, dy + dheight * scale)
 }

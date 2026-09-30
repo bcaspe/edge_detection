@@ -4,9 +4,12 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.sample.edgedetection.EdgeDetectionHandler
 import com.sample.edgedetection.OpenCvBootstrap
 import com.sample.edgedetection.R
@@ -38,10 +41,38 @@ class CropActivity : BaseActivity(), ICropView.Proxy {
             return
         }
         super.onCreate(savedInstanceState)
+        applyCropContentTopInset()
         findViewById<View>(R.id.paper).post {
-            // we have to initialize everything in post when the view has been drawn and we have the actual height and width of the whole view
-            mPresenter.onViewsReady(findViewById<View>(R.id.paper).width, findViewById<View>(R.id.paper).height)
+            // Wait until the content area (below action bar) has a real size
+            mPresenter.onViewsReady()
         }
+    }
+
+    /**
+     * Edge-to-edge draws content under the status/action bars. Push crop content below both
+     * (action bar is taller when a subtitle like "Cropping photo # of #" is set).
+     */
+    private fun applyCropContentTopInset() {
+        val content = findViewById<View>(R.id.crop_content)
+        val fallbackAbHeight = run {
+            val tv = TypedValue()
+            if (theme.resolveAttribute(androidx.appcompat.R.attr.actionBarSize, tv, true)) {
+                TypedValue.complexToDimensionPixelSize(tv.data, resources.displayMetrics)
+            } else {
+                0
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val abHeight = supportActionBar?.height?.takeIf { it > 0 } ?: fallbackAbHeight
+            v.setPadding(bars.left, bars.top + abHeight, bars.right, 0)
+            insets
+        }
+        // Re-apply once the action bar has its final height (e.g. after subtitle)
+        content.post {
+            ViewCompat.requestApplyInsets(content)
+        }
+        ViewCompat.requestApplyInsets(content)
     }
 
     override fun provideContentViewId(): Int = R.layout.activity_crop

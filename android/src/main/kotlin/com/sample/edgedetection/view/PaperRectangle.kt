@@ -58,6 +58,13 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
     private val path = Path()
     private var ratioX: Double = 1.0
     private var ratioY: Double = 1.0
+    /** Crop-mode: maps image pixels ↔ view coords using the ImageView's fitCenter rect. */
+    private var imageWidth = 1.0
+    private var imageHeight = 1.0
+    private var displayLeft = 0.0
+    private var displayTop = 0.0
+    private var displayWidth = 1.0
+    private var displayHeight = 1.0
     private var latestDownX = 0F
     private var latestDownY = 0F
     private var point2Move = Point()
@@ -419,12 +426,22 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         }
     }
 
-    fun onCorners2Crop(corners: Corners?, size: Size?, paperWidth: Int, paperHeight: Int) {
-        if (size == null || paperWidth <= 0 || paperHeight <= 0) {
+    /**
+     * @param displayRect where the bitmap is actually drawn inside the sibling ImageView
+     *                    (fitCenter letterboxing). Must be in the same coordinate space as this view.
+     */
+    fun onCorners2Crop(corners: Corners?, size: Size?, displayRect: RectF) {
+        if (size == null || displayRect.width() <= 0f || displayRect.height() <= 0f) {
             return
         }
 
         cropMode = true
+        imageWidth = size.width
+        imageHeight = size.height
+        displayLeft = displayRect.left.toDouble()
+        displayTop = displayRect.top.toDouble()
+        displayWidth = displayRect.width().toDouble()
+        displayHeight = displayRect.height().toDouble()
 
         val detected = corners?.corners
         val candidate = if (
@@ -457,9 +474,11 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
             bl = Point(candidate[3].x, candidate[3].y)
         }
 
-        ratioX = size.width / paperWidth
-        ratioY = size.height / paperHeight
-        resize()
+        // Image-space corners → view-space using fitCenter display rect
+        tl = imageToView(tl)
+        tr = imageToView(tr)
+        br = imageToView(br)
+        bl = imageToView(bl)
         movePoints()
     }
 
@@ -480,9 +499,23 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         return abs(area) / 2.0
     }
 
+    private fun imageToView(p: Point): Point {
+        return Point(
+            displayLeft + p.x / imageWidth * displayWidth,
+            displayTop + p.y / imageHeight * displayHeight
+        )
+    }
+
+    private fun viewToImage(p: Point): Point {
+        return Point(
+            (p.x - displayLeft) / displayWidth * imageWidth,
+            (p.y - displayTop) / displayHeight * imageHeight
+        )
+    }
+
     fun getCorners2Crop(): List<Point> {
-        reverseSize()
-        return listOf(tl, tr, br, bl)
+        // Return image-space points without mutating view-space handles
+        return listOf(viewToImage(tl), viewToImage(tr), viewToImage(br), viewToImage(bl))
     }
 
     private fun resetQuadrilateral() {
@@ -502,16 +535,5 @@ class PaperRectangle(context: Context, attrs: AttributeSet? = null) : View(conte
         br.y = br.y / ratioY
         bl.x = bl.x / ratioX
         bl.y = bl.y / ratioY
-    }
-
-    private fun reverseSize() {
-        tl.x = tl.x * ratioX
-        tl.y = tl.y * ratioY
-        tr.x = tr.x * ratioX
-        tr.y = tr.y * ratioY
-        br.x = br.x * ratioX
-        br.y = br.y * ratioY
-        bl.x = bl.x * ratioX
-        bl.y = bl.y * ratioY
     }
 }

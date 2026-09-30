@@ -4,12 +4,12 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- Content container that avoids the top and bottom bars -->
+    <!-- Content container that stays below the action bar / status bar -->
     <RelativeLayout
+        android:id="@+id/crop_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/bottom_bar"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:layout_above="@+id/bottom_bar">
 
         <ImageView
             android:id="@+id/picture_cropped"
